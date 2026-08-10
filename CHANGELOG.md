@@ -12,6 +12,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 - `I` enters insert mode before the first non-blank character on the current line.
 - `f{char}` and `F{char}` search forward or backward on the current line, with counts, visual selections, and `d`/`c`/`y` operator support.
+- `;` repeats the latest character find and `,` repeats it in the opposite direction, including counts, operators, visual mode, and one-shot normal mode.
+
+### Fixed
+
+- Backward `F` motions now exclude the matched character from operator ranges, matching Vim.
 
 ## [0.15.3] — 2026-07-01
 

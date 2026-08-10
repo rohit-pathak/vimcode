@@ -77,6 +77,10 @@ describe("createVimState", () => {
     const s = createVimState();
     expect(s.disabled).toBe(false);
   });
+
+  it("initializes without a remembered character find", () => {
+    expect(createVimState().lastFind).toBeNull();
+  });
 });
 
 // ── toggleVimMode ────────────────────────────────────────────
@@ -443,6 +447,91 @@ describe("handleNormalKey — character-find motions", () => {
   });
 });
 
+describe("handleNormalKey — repeat character-find motions", () => {
+  const text = "xaxbxcx";
+  let cursor = 0;
+  const repeatPrompt: PromptAccess = {
+    getLine: () => text,
+    getLineCount: () => 1,
+    getCursorLine: () => 0,
+    getCursorOffset: () => cursor,
+    getPlainText: () => text,
+  };
+
+  beforeEach(() => {
+    cursor = 0;
+  });
+
+  it("; repeats the latest forward find", () => {
+    handleNormalKey(state, "f", ev("f"), repeatPrompt);
+    const first = handleNormalKey(state, "x", ev("x"), repeatPrompt);
+    cursor = cursorTos(first.actions)[0];
+
+    const repeated = handleNormalKey(state, ";", ev(";"), repeatPrompt);
+    expect(cursorTos(repeated.actions)).toEqual([4]);
+    expect(state.lastFind).toEqual({ char: "x", direction: "forward" });
+  });
+
+  it("; repeats the latest backward find", () => {
+    cursor = 6;
+    handleNormalKey(state, "F", ev("f", { shift: true }), repeatPrompt);
+    const first = handleNormalKey(state, "x", ev("x"), repeatPrompt);
+    cursor = cursorTos(first.actions)[0];
+
+    const repeated = handleNormalKey(state, ";", ev(";"), repeatPrompt);
+    expect(cursorTos(repeated.actions)).toEqual([2]);
+  });
+
+  it(", reverses the find without changing its stored direction", () => {
+    handleNormalKey(state, "f", ev("f"), repeatPrompt);
+    const first = handleNormalKey(state, "x", ev("x"), repeatPrompt);
+    cursor = cursorTos(first.actions)[0];
+    const second = handleNormalKey(state, ";", ev(";"), repeatPrompt);
+    cursor = cursorTos(second.actions)[0];
+
+    const reversed = handleNormalKey(state, ",", ev(","), repeatPrompt);
+    expect(cursorTos(reversed.actions)).toEqual([2]);
+    expect(state.lastFind).toEqual({ char: "x", direction: "forward" });
+
+    cursor = cursorTos(reversed.actions)[0];
+    const forwardAgain = handleNormalKey(state, ";", ev(";"), repeatPrompt);
+    expect(cursorTos(forwardAgain.actions)).toEqual([4]);
+  });
+
+  it("2; repeats to the second occurrence", () => {
+    handleNormalKey(state, "f", ev("f"), repeatPrompt);
+    const first = handleNormalKey(state, "x", ev("x"), repeatPrompt);
+    cursor = cursorTos(first.actions)[0];
+    handleNormalKey(state, "2", ev("2"), repeatPrompt);
+
+    const repeated = handleNormalKey(state, ";", ev(";"), repeatPrompt);
+    expect(cursorTos(repeated.actions)).toEqual([6]);
+  });
+
+  it("does nothing without a previous find and cancels a pending operator", () => {
+    handleNormalKey(state, "d", ev("d"), repeatPrompt);
+    const r = handleNormalKey(state, ";", ev(";"), repeatPrompt);
+    expect(r.actions).toEqual([]);
+    expect(state.pendingOp).toBeNull();
+  });
+
+  it("a failed explicit find replaces the remembered find", () => {
+    handleNormalKey(state, "f", ev("f"), repeatPrompt);
+    handleNormalKey(state, "x", ev("x"), repeatPrompt);
+    handleNormalKey(state, "f", ev("f"), repeatPrompt);
+    handleNormalKey(state, "z", ev("z"), repeatPrompt);
+    expect(state.lastFind).toEqual({ char: "z", direction: "forward" });
+  });
+
+  it("a failed repeat preserves the remembered find", () => {
+    cursor = 6;
+    state.lastFind = { char: "x", direction: "forward" };
+    const r = handleNormalKey(state, ";", ev(";"), repeatPrompt);
+    expect(r.actions).toEqual([]);
+    expect(state.lastFind).toEqual({ char: "x", direction: "forward" });
+  });
+});
+
 // ── handleNormalKey — g prefix ─────────────────────────────
 
 describe("handleNormalKey — g prefix", () => {
@@ -653,11 +742,11 @@ describe("handleNormalKey — operators with character-find motions", () => {
     expect(saveUndoSnapshots(r.actions)).toHaveLength(1);
   });
 
-  it("dF{char} deletes backward through the matching character", () => {
+  it("dF{char} excludes the matching character from the backward range", () => {
     handleNormalKey(state, "d", ev("d"), backwardPrompt);
     handleNormalKey(state, "F", ev("f", { shift: true }), backwardPrompt);
     const r = handleNormalKey(state, "a", ev("a"), backwardPrompt);
-    expect(deleteRanges(r.actions)).toEqual([{ start: 3, end: 5 }]);
+    expect(deleteRanges(r.actions)).toEqual([{ start: 4, end: 5 }]);
   });
 
   it("cf{char} deletes through the match and enters insert mode", () => {
@@ -669,12 +758,12 @@ describe("handleNormalKey — operators with character-find motions", () => {
     expect(r.actions).toContainEqual({ type: "mode", mode: "insert" });
   });
 
-  it("yF{char} yanks the inclusive backward range", () => {
+  it("yF{char} excludes the matching character from the backward range", () => {
     handleNormalKey(state, "y", ev("y"), backwardPrompt);
     handleNormalKey(state, "F", ev("f", { shift: true }), backwardPrompt);
     const r = handleNormalKey(state, "a", ev("a"), backwardPrompt);
-    expect(state.yankRegister).toBe("abc");
-    expect(r.actions).toContainEqual({ type: "yank", text: "abc" });
+    expect(state.yankRegister).toBe("bc");
+    expect(r.actions).toContainEqual({ type: "yank", text: "bc" });
   });
 
   it("d2f{char} uses the motion count", () => {
@@ -691,6 +780,63 @@ describe("handleNormalKey — operators with character-find motions", () => {
     const r = handleNormalKey(state, "z", ev("z"), forwardPrompt);
     expect(r.actions).toEqual([]);
     expect(state.pendingOp).toBeNull();
+  });
+});
+
+describe("handleNormalKey — operators with repeated character finds", () => {
+  const text = "xaxbxcx";
+  let cursor = 2;
+  const repeatPrompt: PromptAccess = {
+    getLine: () => text,
+    getLineCount: () => 1,
+    getCursorLine: () => 0,
+    getCursorOffset: () => cursor,
+    getPlainText: () => text,
+  };
+
+  beforeEach(() => {
+    cursor = 2;
+  });
+
+  it("d; includes the target when repeating forward", () => {
+    state.lastFind = { char: "x", direction: "forward" };
+    handleNormalKey(state, "d", ev("d"), repeatPrompt);
+    const r = handleNormalKey(state, ";", ev(";"), repeatPrompt);
+    expect(deleteRanges(r.actions)).toEqual([{ start: 2, end: 4 }]);
+    expect(saveUndoSnapshots(r.actions)).toHaveLength(1);
+  });
+
+  it("d, excludes the target when reversing backward", () => {
+    cursor = 4;
+    state.lastFind = { char: "x", direction: "forward" };
+    handleNormalKey(state, "d", ev("d"), repeatPrompt);
+    const r = handleNormalKey(state, ",", ev(","), repeatPrompt);
+    expect(deleteRanges(r.actions)).toEqual([{ start: 3, end: 4 }]);
+  });
+
+  it("c, enters insert mode after applying the backward range", () => {
+    cursor = 4;
+    state.lastFind = { char: "x", direction: "forward" };
+    handleNormalKey(state, "c", ev("c"), repeatPrompt);
+    const r = handleNormalKey(state, ",", ev(","), repeatPrompt);
+    expect(deleteRanges(r.actions)).toEqual([{ start: 3, end: 4 }]);
+    expect(state.mode).toBe("insert");
+  });
+
+  it("y; yanks through the forward target", () => {
+    state.lastFind = { char: "x", direction: "forward" };
+    handleNormalKey(state, "y", ev("y"), repeatPrompt);
+    const r = handleNormalKey(state, ";", ev(";"), repeatPrompt);
+    expect(state.yankRegister).toBe("xbx");
+    expect(r.actions).toContainEqual({ type: "yank", text: "xbx" });
+  });
+
+  it("d2; uses the repeat count", () => {
+    state.lastFind = { char: "x", direction: "forward" };
+    handleNormalKey(state, "d", ev("d"), repeatPrompt);
+    handleNormalKey(state, "2", ev("2"), repeatPrompt);
+    const r = handleNormalKey(state, ";", ev(";"), repeatPrompt);
+    expect(deleteRanges(r.actions)).toEqual([{ start: 2, end: 6 }]);
   });
 });
 
@@ -1185,6 +1331,40 @@ describe("handleVisualKey — motions", () => {
     expect(r.actions).toContainEqual({ type: "clearSelection" });
   });
 
+  it("; repeats the remembered find in visual mode", () => {
+    state.visualAnchor = 0;
+    state.lastFind = { char: "x", direction: "forward" };
+    const prompt = { ...mockPrompt, getCursorOffset: () => 2, getPlainText: () => "xaxbxcx" };
+    const r = handleVisualKey(state, ";", ev(";"), prompt);
+    expect(selectRanges(r.actions)).toEqual([{ start: 0, end: 4 }]);
+    expect(cursorTos(r.actions)).toEqual([4]);
+  });
+
+  it(", reverses the remembered find in visual mode", () => {
+    state.visualAnchor = 6;
+    state.lastFind = { char: "x", direction: "forward" };
+    const prompt = { ...mockPrompt, getCursorOffset: () => 4, getPlainText: () => "xaxbxcx" };
+    const r = handleVisualKey(state, ",", ev(","), prompt);
+    expect(selectRanges(r.actions)).toEqual([{ start: 6, end: 2 }]);
+    expect(state.lastFind.direction).toBe("forward");
+  });
+
+  it("2; repeats to the second match in visual mode", () => {
+    state.visualAnchor = 0;
+    state.lastFind = { char: "x", direction: "forward" };
+    const prompt = { ...mockPrompt, getCursorOffset: () => 2, getPlainText: () => "xaxbxcx" };
+    handleVisualKey(state, "2", ev("2"), prompt);
+    const r = handleVisualKey(state, ";", ev(";"), prompt);
+    expect(selectRanges(r.actions)).toEqual([{ start: 0, end: 6 }]);
+  });
+
+  it("does nothing when visual mode has no remembered find", () => {
+    state.count = 2;
+    const r = handleVisualKey(state, ";", ev(";"), mockPrompt);
+    expect(r.actions).toEqual([]);
+    expect(state.count).toBe(0);
+  });
+
   it("g sets pendingChar, no actions", () => {
     const r = handleVisualKey(state, "g", ev("g"));
     expect(r.consume).toBe(true);
@@ -1418,6 +1598,16 @@ describe("Ctrl+O one-shot normal mode", () => {
     const r2 = handleNormalKey(state, "o", ev("o"), mockPrompt);
     finishOneShotIfComplete(state, r2);
     expect(cursorTos(r2.actions)).toEqual([4]);
+    expect(state.mode).toBe("insert");
+    expect(state.oneShotNormal).toBe(false);
+  });
+
+  it("; repeats a remembered find then auto-returns to insert", () => {
+    enterOneShot();
+    state.lastFind = { char: "o", direction: "forward" };
+    const r = handleNormalKey(state, ";", ev(";"), mockPrompt);
+    finishOneShotIfComplete(state, r);
+    expect(cursorTos(r.actions)).toEqual([4]);
     expect(state.mode).toBe("insert");
     expect(state.oneShotNormal).toBe(false);
   });
