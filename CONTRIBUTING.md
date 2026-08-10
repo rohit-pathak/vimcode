@@ -79,7 +79,7 @@ Releases are manual.
 vimcode is installed via git URL in OpenCode's `tui.json`:
 
 ```json
-{ "plugin": ["vimcode@git+https://github.com/oribarilan/vimcode.git"] }
+{ "plugin": ["vimcode@git+https://github.com/rohit-pathak/vimcode.git"] }
 ```
 
 Bare names (like `"vimcode"`) trigger npm resolution, which won't work since the package isn't published. The `@git+` prefix tells OpenCode to clone from GitHub.

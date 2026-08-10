@@ -1,9 +1,9 @@
 // Keep in sync with package.json on each release.
-export const VERSION = "0.15.3";
+export const VERSION = "0.16.0";
 
 // GitHub API returns fresh content immediately; raw.githubusercontent.com
 // is CDN-cached for up to 5 minutes which delays update detection.
-const LATEST_VERSION_URL = "https://api.github.com/repos/oribarilan/vimcode/contents/package.json?ref=main";
+const LATEST_VERSION_URL = "https://api.github.com/repos/rohit-pathak/vimcode/contents/package.json?ref=main";
 
 type Toast = (opts: { message: string; variant: string; duration: number }) => void;
 type KV = { get(key: string): Promise<string | undefined>; set(key: string, value: string): Promise<void> };
