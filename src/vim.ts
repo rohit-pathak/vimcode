@@ -1,5 +1,6 @@
 export type Mode = "normal" | "insert" | "visual" | "(insert)";
 export type Operator = "d" | "c" | "y" | null;
+type FindDirection = "forward" | "backward";
 
 export type Action =
   | { type: "cmd"; cmd: string }
@@ -26,6 +27,7 @@ export type VimState = {
   pendingChar: "r" | "g" | "f" | "F" | null;
   count: number;
   yankRegister: string;
+  lastFind: { char: string; direction: FindDirection } | null;
   oneShotNormal: boolean;
   disabled: boolean;
   visualAnchor?: number;
@@ -94,6 +96,7 @@ export function createVimState(): VimState {
     pendingChar: null,
     count: 0,
     yankRegister: "",
+    lastFind: null,
     oneShotNormal: false,
     disabled: false,
   };
@@ -143,7 +146,7 @@ export function findChar(
   text: string,
   offset: number,
   char: string,
-  direction: "forward" | "backward",
+  direction: FindDirection,
   count = 1,
 ): number | null {
   if (char.length !== 1 || text.length === 0) return null;
@@ -264,42 +267,13 @@ export function handleNormalKey(state: VimState, key: string, ev: KeyEvent, prom
   if (state.pendingChar === "f" || state.pendingChar === "F") {
     const pendingChar = state.pendingChar;
     state.pendingChar = null;
-    const n = consumeCount(state);
-    const offset = prompt.getCursorOffset();
-    const target = findChar(
-      prompt.getPlainText(),
-      offset,
+    return applyNormalFind(
+      state,
+      prompt,
       characterArgument(key),
       pendingChar === "f" ? "forward" : "backward",
-      n,
+      true,
     );
-    const actions: Action[] = [];
-
-    if (target === null) {
-      resetPending(state);
-      return { consume: true, actions };
-    }
-
-    if (state.pendingOp === "y") {
-      const start = Math.min(offset, target);
-      const end = Math.max(offset, target);
-      const text = prompt.getPlainText().slice(start, end + 1);
-      state.yankRegister = text;
-      actions.push({ type: "yank", text });
-      resetPending(state);
-      return { consume: true, actions };
-    }
-
-    if (state.pendingOp === "d" || state.pendingOp === "c") {
-      const operator = state.pendingOp;
-      actions.push({ type: "deleteRange", start: Math.min(offset, target), end: Math.max(offset, target) });
-      if (operator === "c") enterInsert(state, actions);
-      else resetPending(state);
-      return finishUndoableChange(actions);
-    }
-
-    actions.push({ type: "cursorTo", offset: target });
-    return { consume: true, actions };
   }
 
   // Pending g prefix (gg, ge, etc.)
@@ -428,6 +402,15 @@ export function handleNormalKey(state: VimState, key: string, ev: KeyEvent, prom
   if (key === "f" || key === "F") {
     state.pendingChar = key;
     return { consume: true, actions };
+  }
+
+  if (key === ";" || key === ",") {
+    if (!state.lastFind) {
+      resetPending(state);
+      return { consume: true, actions };
+    }
+    const direction = key === ";" ? state.lastFind.direction : oppositeDirection(state.lastFind.direction);
+    return applyNormalFind(state, prompt, state.lastFind.char, direction, false);
   }
 
   // Pending operator + e (end-of-word needs special handling)
@@ -618,18 +601,13 @@ export function handleVisualKey(state: VimState, key: string, ev: KeyEvent, prom
     } else {
       const pendingChar = state.pendingChar;
       state.pendingChar = null;
-      const target = findChar(
-        prompt.getPlainText(),
-        prompt.getCursorOffset(),
+      return applyVisualFind(
+        state,
+        prompt,
         characterArgument(key),
         pendingChar === "f" ? "forward" : "backward",
-        consumeCount(state),
+        true,
       );
-      if (target !== null) {
-        actions.push({ type: "selectRange", start: state.visualAnchor ?? 0, end: target });
-        actions.push({ type: "cursorTo", offset: target });
-      }
-      return { consume: true, actions };
     }
   }
 
@@ -689,6 +667,15 @@ export function handleVisualKey(state: VimState, key: string, ev: KeyEvent, prom
     return { consume: true, actions };
   }
 
+  if (key === ";" || key === ",") {
+    if (!state.lastFind) {
+      state.count = 0;
+      return { consume: true, actions };
+    }
+    const direction = key === ";" ? state.lastFind.direction : oppositeDirection(state.lastFind.direction);
+    return applyVisualFind(state, prompt, state.lastFind.char, direction, false);
+  }
+
   // Motions extend selection
   if (key in SELECT_MOTIONS) {
     pushN(actions, SELECT_MOTIONS[key], consumeCount(state));
@@ -731,6 +718,67 @@ function characterArgument(key: string): string {
   if (key === "space") return " ";
   if (key === "tab") return "\t";
   return key;
+}
+
+function oppositeDirection(direction: FindDirection): FindDirection {
+  return direction === "forward" ? "backward" : "forward";
+}
+
+function applyNormalFind(
+  state: VimState,
+  prompt: PromptAccess,
+  char: string,
+  direction: FindDirection,
+  remember: boolean,
+): HandlerResult {
+  if (remember) state.lastFind = { char, direction };
+
+  const offset = prompt.getCursorOffset();
+  const target = findChar(prompt.getPlainText(), offset, char, direction, consumeCount(state));
+  const actions: Action[] = [];
+  if (target === null) {
+    resetPending(state);
+    return { consume: true, actions };
+  }
+
+  const range =
+    direction === "forward" ? { start: offset, end: target } : { start: target + 1, end: offset };
+  if (state.pendingOp === "y") {
+    const text = prompt.getPlainText().slice(range.start, range.end + 1);
+    state.yankRegister = text;
+    actions.push({ type: "yank", text });
+    resetPending(state);
+    return { consume: true, actions };
+  }
+
+  if (state.pendingOp === "d" || state.pendingOp === "c") {
+    const operator = state.pendingOp;
+    actions.push({ type: "deleteRange", ...range });
+    if (operator === "c") enterInsert(state, actions);
+    else resetPending(state);
+    return finishUndoableChange(actions);
+  }
+
+  actions.push({ type: "cursorTo", offset: target });
+  return { consume: true, actions };
+}
+
+function applyVisualFind(
+  state: VimState,
+  prompt: PromptAccess,
+  char: string,
+  direction: FindDirection,
+  remember: boolean,
+): HandlerResult {
+  if (remember) state.lastFind = { char, direction };
+
+  const target = findChar(prompt.getPlainText(), prompt.getCursorOffset(), char, direction, consumeCount(state));
+  const actions: Action[] = [];
+  if (target !== null) {
+    actions.push({ type: "selectRange", start: state.visualAnchor ?? 0, end: target });
+    actions.push({ type: "cursorTo", offset: target });
+  }
+  return { consume: true, actions };
 }
 
 function finishUndoableChange(actions: Action[]): HandlerResult {

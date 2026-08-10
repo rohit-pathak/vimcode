@@ -103,6 +103,7 @@ The plugin checks GitHub for new versions once per day on startup. No other netw
 | `h` `j` `k` `l` | Left, down, up, right |
 | `w` `b` `e` | Word forward, backward, end of word |
 | `f{char}` `F{char}` | Next/previous `{char}` on the current line |
+| `;` `,` | Repeat the latest character find in the same/opposite direction |
 | `0` `^` | Line start |
 | `$` | Line end |
 | `gg` | Buffer start |
@@ -124,7 +125,9 @@ When the input is empty, `j`/`k` scroll through prompt history instead of moving
 | `db` `cb` `yb` | To previous word |
 | `de` `ce` `ye` | To end of word |
 | `df{char}` `cf{char}` `yf{char}` | Through next `{char}` on the current line |
-| `dF{char}` `cF{char}` `yF{char}` | Through previous `{char}` on the current line |
+| `dF{char}` `cF{char}` `yF{char}` | Back to previous `{char}`, excluding the match |
+| `d;` `c;` `y;` | Repeat the latest character find |
+| `d,` `c,` `y,` | Repeat the latest character find in the opposite direction |
 | `d$` `c$` `y$` | To end of line |
 | `d0` `c0` `y0` | To start of line |
 | `d^` `c^` `y^` | To start of line |
@@ -161,7 +164,7 @@ Press `v` in normal mode to enter character-wise visual mode. Press `V` to selec
 | `V` | Select current line |
 | `Escape` `v` | Exit visual mode |
 
-All normal-mode motions work for extending the selection: `h` `j` `k` `l` `w` `b` `e` `f{char}` `F{char}` `0` `$` `G`, with counts.
+All normal-mode motions work for extending the selection: `h` `j` `k` `l` `w` `b` `e` `f{char}` `F{char}` `;` `,` `0` `$` `G`, with counts.
 
 ### Other
 
