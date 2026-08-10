@@ -8,6 +8,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+### Added
+
+- `I` enters insert mode before the first non-blank character on the current line.
+- `f{char}` and `F{char}` search forward or backward on the current line, with counts, visual selections, and `d`/`c`/`y` operator support.
+
 ## [0.15.3] — 2026-07-01
 
 ### Fixed

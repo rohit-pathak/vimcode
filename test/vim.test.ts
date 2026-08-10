@@ -3,6 +3,8 @@ import {
   type Action,
   createVimState,
   endOfWord,
+  findChar,
+  firstNonBlank,
   finishOneShotIfComplete,
   handleInsertKey,
   handleNormalKey,
@@ -190,6 +192,39 @@ describe("endOfWord", () => {
   });
 });
 
+describe("findChar", () => {
+  it("finds characters forward and backward without matching under the cursor", () => {
+    expect(findChar("abacad", 0, "a", "forward")).toBe(2);
+    expect(findChar("abacad", 5, "a", "backward")).toBe(4);
+  });
+
+  it("finds the counted occurrence", () => {
+    expect(findChar("abacad", 0, "a", "forward", 2)).toBe(4);
+    expect(findChar("abacad", 5, "a", "backward", 2)).toBe(2);
+  });
+
+  it("does not cross line boundaries", () => {
+    expect(findChar("abc\ndef", 2, "d", "forward")).toBeNull();
+    expect(findChar("abc\ndef", 4, "c", "backward")).toBeNull();
+  });
+
+  it("returns null when the character is absent", () => {
+    expect(findChar("abc", 0, "z", "forward")).toBeNull();
+  });
+});
+
+describe("firstNonBlank", () => {
+  it("finds the first non-blank character on the current line", () => {
+    expect(firstNonBlank("first\n  second", 10)).toBe(8);
+  });
+
+  it("returns line start for an empty or whitespace-only line", () => {
+    expect(firstNonBlank("first\n\nthird", 6)).toBe(6);
+    expect(firstNonBlank("first\n   \nthird", 8)).toBe(6);
+    expect(firstNonBlank("first\n", 6)).toBe(6);
+  });
+});
+
 // ── translateKey ────────────────────────────────────────────
 
 describe("translateKey", () => {
@@ -349,6 +384,62 @@ describe("handleNormalKey — motions", () => {
     expect(r.consume).toBe(true);
     expect(r.actions).toEqual([]);
     expect(state.pendingChar).toBe("g");
+  });
+});
+
+describe("handleNormalKey — character-find motions", () => {
+  const findPrompt: PromptAccess = {
+    getLine: () => "abacad",
+    getLineCount: () => 1,
+    getCursorLine: () => 0,
+    getCursorOffset: () => 0,
+    getPlainText: () => "abacad",
+  };
+
+  it("f{char} moves to the next matching character", () => {
+    const pending = handleNormalKey(state, "f", ev("f"), findPrompt);
+    expect(pending.actions).toEqual([]);
+    expect(state.pendingChar).toBe("f");
+
+    const r = handleNormalKey(state, "a", ev("a"), findPrompt);
+    expect(cursorTos(r.actions)).toEqual([2]);
+    expect(state.pendingChar).toBeNull();
+  });
+
+  it("2f{char} moves to the second matching character", () => {
+    handleNormalKey(state, "2", ev("2"), findPrompt);
+    handleNormalKey(state, "f", ev("f"), findPrompt);
+    const r = handleNormalKey(state, "a", ev("a"), findPrompt);
+    expect(cursorTos(r.actions)).toEqual([4]);
+  });
+
+  it("F{char} moves to the previous matching character", () => {
+    const backwardPrompt = { ...findPrompt, getCursorOffset: () => 5 };
+    handleNormalKey(state, "F", ev("f", { shift: true }), backwardPrompt);
+    const r = handleNormalKey(state, "a", ev("a"), backwardPrompt);
+    expect(cursorTos(r.actions)).toEqual([4]);
+  });
+
+  it("searches for Space using OpenCode's key name", () => {
+    const spacedPrompt = { ...findPrompt, getPlainText: () => "a b", getCursorOffset: () => 0 };
+    handleNormalKey(state, "f", ev("f"), spacedPrompt);
+    const r = handleNormalKey(state, "space", ev("space"), spacedPrompt);
+    expect(cursorTos(r.actions)).toEqual([1]);
+  });
+
+  it("does nothing and clears state when the character is not found", () => {
+    handleNormalKey(state, "3", ev("3"), findPrompt);
+    handleNormalKey(state, "f", ev("f"), findPrompt);
+    const r = handleNormalKey(state, "z", ev("z"), findPrompt);
+    expect(r.actions).toEqual([]);
+    expect(state.pendingChar).toBeNull();
+    expect(state.count).toBe(0);
+  });
+
+  it("Escape cancels a pending find", () => {
+    handleNormalKey(state, "f", ev("f"), findPrompt);
+    handleNormalKey(state, "escape", ev("escape"), findPrompt);
+    expect(state.pendingChar).toBeNull();
   });
 });
 
@@ -541,6 +632,65 @@ describe("handleNormalKey — operators", () => {
       "input.select.word.forward",
     ]);
     expect(r.actions.some((a) => a.type === "yankSelection")).toBe(true);
+  });
+});
+
+describe("handleNormalKey — operators with character-find motions", () => {
+  const forwardPrompt: PromptAccess = {
+    getLine: () => "abcabc",
+    getLineCount: () => 1,
+    getCursorLine: () => 0,
+    getCursorOffset: () => 0,
+    getPlainText: () => "abcabc",
+  };
+  const backwardPrompt = { ...forwardPrompt, getCursorOffset: () => 5 };
+
+  it("df{char} deletes through the matching character", () => {
+    handleNormalKey(state, "d", ev("d"), forwardPrompt);
+    handleNormalKey(state, "f", ev("f"), forwardPrompt);
+    const r = handleNormalKey(state, "c", ev("c"), forwardPrompt);
+    expect(deleteRanges(r.actions)).toEqual([{ start: 0, end: 2 }]);
+    expect(saveUndoSnapshots(r.actions)).toHaveLength(1);
+  });
+
+  it("dF{char} deletes backward through the matching character", () => {
+    handleNormalKey(state, "d", ev("d"), backwardPrompt);
+    handleNormalKey(state, "F", ev("f", { shift: true }), backwardPrompt);
+    const r = handleNormalKey(state, "a", ev("a"), backwardPrompt);
+    expect(deleteRanges(r.actions)).toEqual([{ start: 3, end: 5 }]);
+  });
+
+  it("cf{char} deletes through the match and enters insert mode", () => {
+    handleNormalKey(state, "c", ev("c"), forwardPrompt);
+    handleNormalKey(state, "f", ev("f"), forwardPrompt);
+    const r = handleNormalKey(state, "c", ev("c"), forwardPrompt);
+    expect(deleteRanges(r.actions)).toEqual([{ start: 0, end: 2 }]);
+    expect(state.mode).toBe("insert");
+    expect(r.actions).toContainEqual({ type: "mode", mode: "insert" });
+  });
+
+  it("yF{char} yanks the inclusive backward range", () => {
+    handleNormalKey(state, "y", ev("y"), backwardPrompt);
+    handleNormalKey(state, "F", ev("f", { shift: true }), backwardPrompt);
+    const r = handleNormalKey(state, "a", ev("a"), backwardPrompt);
+    expect(state.yankRegister).toBe("abc");
+    expect(r.actions).toContainEqual({ type: "yank", text: "abc" });
+  });
+
+  it("d2f{char} uses the motion count", () => {
+    handleNormalKey(state, "d", ev("d"), forwardPrompt);
+    handleNormalKey(state, "2", ev("2"), forwardPrompt);
+    handleNormalKey(state, "f", ev("f"), forwardPrompt);
+    const r = handleNormalKey(state, "c", ev("c"), forwardPrompt);
+    expect(deleteRanges(r.actions)).toEqual([{ start: 0, end: 5 }]);
+  });
+
+  it("leaves the buffer unchanged when the character is not found", () => {
+    handleNormalKey(state, "d", ev("d"), forwardPrompt);
+    handleNormalKey(state, "f", ev("f"), forwardPrompt);
+    const r = handleNormalKey(state, "z", ev("z"), forwardPrompt);
+    expect(r.actions).toEqual([]);
+    expect(state.pendingOp).toBeNull();
   });
 });
 
@@ -740,6 +890,32 @@ describe("handleNormalKey — insert entries", () => {
     const r = handleNormalKey(state, "i", ev("i"), mockPrompt);
     expect(state.mode).toBe("insert");
     expect(r.actions).toContainEqual({ type: "mode", mode: "insert" });
+  });
+
+  it("I moves to the first non-blank character and enters insert", () => {
+    const indentedPrompt: PromptAccess = {
+      getLine: () => "  hello",
+      getLineCount: () => 1,
+      getCursorLine: () => 0,
+      getCursorOffset: () => 6,
+      getPlainText: () => "  hello",
+    };
+    const r = handleNormalKey(state, "I", ev("i", { shift: true }), indentedPrompt);
+    expect(cursorTos(r.actions)).toEqual([2]);
+    expect(state.mode).toBe("insert");
+  });
+
+  it("I uses line start on a blank line", () => {
+    const blankLinePrompt: PromptAccess = {
+      getLine: () => "",
+      getLineCount: () => 3,
+      getCursorLine: () => 1,
+      getCursorOffset: () => 6,
+      getPlainText: () => "first\n\nthird",
+    };
+    const r = handleNormalKey(state, "I", ev("i", { shift: true }), blankLinePrompt);
+    expect(cursorTos(r.actions)).toEqual([6]);
+    expect(state.mode).toBe("insert");
   });
 
   it("a dispatches input.move.right, enters insert", () => {
@@ -975,6 +1151,40 @@ describe("handleVisualKey — motions", () => {
     expect(cursorTos(r2.actions)).toEqual([10]);
   });
 
+  it("f{char} extends the selection to the next matching character", () => {
+    state.visualAnchor = 0;
+    handleVisualKey(state, "f", ev("f"), mockPrompt);
+    const r = handleVisualKey(state, "o", ev("o"), mockPrompt);
+    expect(selectRanges(r.actions)).toEqual([{ start: 0, end: 4 }]);
+    expect(cursorTos(r.actions)).toEqual([4]);
+  });
+
+  it("F{char} extends the selection to the previous matching character", () => {
+    state.visualAnchor = 10;
+    const backwardPrompt = { ...mockPrompt, getCursorOffset: () => 10 };
+    handleVisualKey(state, "F", ev("f", { shift: true }), backwardPrompt);
+    const r = handleVisualKey(state, "o", ev("o"), backwardPrompt);
+    expect(selectRanges(r.actions)).toEqual([{ start: 10, end: 7 }]);
+    expect(cursorTos(r.actions)).toEqual([7]);
+  });
+
+  it("2f{char} extends the selection to the second match", () => {
+    state.visualAnchor = 0;
+    const findPrompt = { ...mockPrompt, getPlainText: () => "abacad" };
+    handleVisualKey(state, "2", ev("2"), findPrompt);
+    handleVisualKey(state, "f", ev("f"), findPrompt);
+    const r = handleVisualKey(state, "a", ev("a"), findPrompt);
+    expect(selectRanges(r.actions)).toEqual([{ start: 0, end: 4 }]);
+  });
+
+  it("Escape cancels a pending find and exits visual mode", () => {
+    handleVisualKey(state, "f", ev("f"), mockPrompt);
+    const r = handleVisualKey(state, "escape", ev("escape"), mockPrompt);
+    expect(state.pendingChar).toBeNull();
+    expect(state.mode).toBe("normal");
+    expect(r.actions).toContainEqual({ type: "clearSelection" });
+  });
+
   it("g sets pendingChar, no actions", () => {
     const r = handleVisualKey(state, "g", ev("g"));
     expect(r.consume).toBe(true);
@@ -1196,6 +1406,19 @@ describe("Ctrl+O one-shot normal mode", () => {
     enterOneShot();
     handleNormalKey(state, "v", ev("v"), mockPrompt);
     expect(state.mode).toBe("visual");
+    expect(state.oneShotNormal).toBe(false);
+  });
+
+  it("f{char} waits for its target then auto-returns to insert", () => {
+    enterOneShot();
+    const r1 = handleNormalKey(state, "f", ev("f"), mockPrompt);
+    finishOneShotIfComplete(state, r1);
+    expect(state.mode).toBe("normal");
+
+    const r2 = handleNormalKey(state, "o", ev("o"), mockPrompt);
+    finishOneShotIfComplete(state, r2);
+    expect(cursorTos(r2.actions)).toEqual([4]);
+    expect(state.mode).toBe("insert");
     expect(state.oneShotNormal).toBe(false);
   });
 
