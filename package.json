@@ -1,13 +1,13 @@
 {
   "name": "vimcode",
-  "version": "0.15.3",
+  "version": "0.16.0",
   "description": "Vim keybindings for the OpenCode prompt",
   "author": "Ori Bar-ilan",
   "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/oribarilan/vimcode.git"
+    "url": "git+https://github.com/rohit-pathak/vimcode.git"
   },
   "keywords": [
     "opencode",
