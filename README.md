@@ -102,6 +102,7 @@ The plugin checks GitHub for new versions once per day on startup. No other netw
 |-----|--------|
 | `h` `j` `k` `l` | Left, down, up, right |
 | `w` `b` `e` | Word forward, backward, end of word |
+| `f{char}` `F{char}` | Next/previous `{char}` on the current line |
 | `0` `^` | Line start |
 | `$` | Line end |
 | `gg` | Buffer start |
@@ -122,6 +123,8 @@ When the input is empty, `j`/`k` scroll through prompt history instead of moving
 | `dw` `cw` `yw` | To next word |
 | `db` `cb` `yb` | To previous word |
 | `de` `ce` `ye` | To end of word |
+| `df{char}` `cf{char}` `yf{char}` | Through next `{char}` on the current line |
+| `dF{char}` `cF{char}` `yF{char}` | Through previous `{char}` on the current line |
 | `d$` `c$` `y$` | To end of line |
 | `d0` `c0` `y0` | To start of line |
 | `d^` `c^` `y^` | To start of line |
@@ -138,6 +141,7 @@ Counts work on both operator and motion: `2dd` deletes 2 lines, `d3w` deletes 3 
 | Key | Action |
 |-----|--------|
 | `i` | Insert at cursor |
+| `I` | Insert before first non-blank character |
 | `a` | Insert after cursor |
 | `A` | Insert at end of line |
 | `o` | Open line below |
@@ -157,7 +161,7 @@ Press `v` in normal mode to enter character-wise visual mode. Press `V` to selec
 | `V` | Select current line |
 | `Escape` `v` | Exit visual mode |
 
-All normal-mode motions work for extending the selection: `h` `j` `k` `l` `w` `b` `e` `0` `$` `G`, with counts.
+All normal-mode motions work for extending the selection: `h` `j` `k` `l` `w` `b` `e` `f{char}` `F{char}` `0` `$` `G`, with counts.
 
 ### Other
 

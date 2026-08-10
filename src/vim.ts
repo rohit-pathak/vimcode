@@ -23,7 +23,7 @@ export type HandlerResult = {
 export type VimState = {
   mode: Mode;
   pendingOp: Operator;
-  pendingChar: "r" | "g" | null;
+  pendingChar: "r" | "g" | "f" | "F" | null;
   count: number;
   yankRegister: string;
   oneShotNormal: boolean;
@@ -139,6 +139,44 @@ export function endOfWord(text: string, offset: number, count = 1): number {
   return Math.min(pos, len - 1);
 }
 
+export function findChar(
+  text: string,
+  offset: number,
+  char: string,
+  direction: "forward" | "backward",
+  count = 1,
+): number | null {
+  if (char.length !== 1 || text.length === 0) return null;
+
+  const safeOffset = Math.min(Math.max(offset, 0), text.length);
+  const lineStart = text.lastIndexOf("\n", safeOffset - 1) + 1;
+  const newline = text.indexOf("\n", safeOffset);
+  const lineEnd = newline === -1 ? text.length : newline;
+  let target = safeOffset;
+
+  for (let step = 0; step < count; step++) {
+    target =
+      direction === "forward" ? text.indexOf(char, target + 1) : text.lastIndexOf(char, target - 1);
+    if (target < lineStart || target >= lineEnd) return null;
+  }
+
+  return target;
+}
+
+export function firstNonBlank(text: string, offset: number): number {
+  if (text.length === 0) return 0;
+
+  const safeOffset = Math.min(Math.max(offset, 0), text.length);
+  const lineStart = text.lastIndexOf("\n", safeOffset - 1) + 1;
+  const newline = text.indexOf("\n", safeOffset);
+  const lineEnd = newline === -1 ? text.length : newline;
+
+  for (let target = lineStart; target < lineEnd; target++) {
+    if (text[target] !== " " && text[target] !== "\t") return target;
+  }
+  return lineStart;
+}
+
 function isWhitespace(ch: string): boolean {
   return ch === " " || ch === "\t" || ch === "\n" || ch === "\r";
 }
@@ -220,6 +258,48 @@ export function handleNormalKey(state: VimState, key: string, ev: KeyEvent, prom
     actions.push({ type: "insertText", text: key.repeat(n) });
     state.pendingChar = null;
     return finishUndoableChange(actions);
+  }
+
+  // Pending character motion (f{char}, F{char})
+  if (state.pendingChar === "f" || state.pendingChar === "F") {
+    const pendingChar = state.pendingChar;
+    state.pendingChar = null;
+    const n = consumeCount(state);
+    const offset = prompt.getCursorOffset();
+    const target = findChar(
+      prompt.getPlainText(),
+      offset,
+      characterArgument(key),
+      pendingChar === "f" ? "forward" : "backward",
+      n,
+    );
+    const actions: Action[] = [];
+
+    if (target === null) {
+      resetPending(state);
+      return { consume: true, actions };
+    }
+
+    if (state.pendingOp === "y") {
+      const start = Math.min(offset, target);
+      const end = Math.max(offset, target);
+      const text = prompt.getPlainText().slice(start, end + 1);
+      state.yankRegister = text;
+      actions.push({ type: "yank", text });
+      resetPending(state);
+      return { consume: true, actions };
+    }
+
+    if (state.pendingOp === "d" || state.pendingOp === "c") {
+      const operator = state.pendingOp;
+      actions.push({ type: "deleteRange", start: Math.min(offset, target), end: Math.max(offset, target) });
+      if (operator === "c") enterInsert(state, actions);
+      else resetPending(state);
+      return finishUndoableChange(actions);
+    }
+
+    actions.push({ type: "cursorTo", offset: target });
+    return { consume: true, actions };
   }
 
   // Pending g prefix (gg, ge, etc.)
@@ -343,6 +423,11 @@ export function handleNormalKey(state: VimState, key: string, ev: KeyEvent, prom
     actions.push({ type: "cmd", cmd: "input.delete.to.line.end" });
     enterInsert(state, actions);
     return finishUndoableChange(actions);
+  }
+
+  if (key === "f" || key === "F") {
+    state.pendingChar = key;
+    return { consume: true, actions };
   }
 
   // Pending operator + e (end-of-word needs special handling)
@@ -484,6 +569,12 @@ export function handleNormalKey(state: VimState, key: string, ev: KeyEvent, prom
     return { consume: true, actions };
   }
 
+  if (key === "I") {
+    actions.push({ type: "cursorTo", offset: firstNonBlank(prompt.getPlainText(), prompt.getCursorOffset()) });
+    enterInsert(state, actions);
+    return { consume: true, actions };
+  }
+
   if (key === "a") {
     actions.push({ type: "cmd", cmd: "input.move.right" });
     enterInsert(state, actions);
@@ -520,6 +611,27 @@ export function handleVisualKey(state: VimState, key: string, ev: KeyEvent, prom
   if (ev.ctrl) return PASS;
 
   const actions: Action[] = [];
+
+  if (state.pendingChar === "f" || state.pendingChar === "F") {
+    if (ev.name === "escape") {
+      state.pendingChar = null;
+    } else {
+      const pendingChar = state.pendingChar;
+      state.pendingChar = null;
+      const target = findChar(
+        prompt.getPlainText(),
+        prompt.getCursorOffset(),
+        characterArgument(key),
+        pendingChar === "f" ? "forward" : "backward",
+        consumeCount(state),
+      );
+      if (target !== null) {
+        actions.push({ type: "selectRange", start: state.visualAnchor ?? 0, end: target });
+        actions.push({ type: "cursorTo", offset: target });
+      }
+      return { consume: true, actions };
+    }
+  }
 
   // Pending g prefix in visual mode
   if (state.pendingChar === "g") {
@@ -572,6 +684,11 @@ export function handleVisualKey(state: VimState, key: string, ev: KeyEvent, prom
     return { consume: true, actions };
   }
 
+  if (key === "f" || key === "F") {
+    state.pendingChar = key;
+    return { consume: true, actions };
+  }
+
   // Motions extend selection
   if (key in SELECT_MOTIONS) {
     pushN(actions, SELECT_MOTIONS[key], consumeCount(state));
@@ -608,6 +725,12 @@ function resetPending(state: VimState) {
   state.pendingOp = null;
   state.pendingChar = null;
   state.count = 0;
+}
+
+function characterArgument(key: string): string {
+  if (key === "space") return " ";
+  if (key === "tab") return "\t";
+  return key;
 }
 
 function finishUndoableChange(actions: Action[]): HandlerResult {
