@@ -1,0 +1,60 @@
+export type Mode = "normal" | "insert" | "visual" | "(insert)";
+export type Operator = "d" | "c" | "y";
+export type FindDirection = "forward" | "backward";
+
+export type Range = { start: number; end: number };
+
+export type Pending =
+  | { kind: "none" }
+  | { kind: "operator"; op: Operator }
+  | { kind: "goto" }
+  | { kind: "replace" }
+  | { kind: "find"; direction: FindDirection; op?: Operator }
+  | { kind: "textobject"; op?: Operator; around: boolean };
+
+export type Action =
+  | { type: "cmd"; cmd: string }
+  | { type: "mode"; mode: Mode }
+  | { type: "toast"; message: string; duration?: number }
+  | { type: "yank"; text: string }
+  | { type: "insertText"; text: string }
+  | { type: "yankSelection" }
+  | { type: "clearSelection" }
+  | { type: "deleteRange"; start: number; end: number }
+  | { type: "saveUndoSnapshot" }
+  | { type: "undo" }
+  | { type: "cursorTo"; offset: number }
+  | { type: "selectRange"; start: number; end: number };
+
+export type HandlerResult = {
+  consume: boolean;
+  actions: Action[];
+};
+
+export type VimState = {
+  mode: Mode;
+  pending: Pending;
+  count: number;
+  yankRegister: string;
+  lastFind: { char: string; direction: FindDirection } | null;
+  oneShotNormal: boolean;
+  disabled: boolean;
+  visualAnchor?: number;
+};
+
+export type KeyEvent = {
+  name: string;
+  shift?: boolean;
+  ctrl?: boolean;
+  meta?: boolean;
+  super?: boolean;
+  eventType?: string;
+};
+
+export type PromptAccess = {
+  getLine: (n: number) => string;
+  getLineCount: () => number;
+  getCursorLine: () => number;
+  getCursorOffset: () => number;
+  getPlainText: () => string;
+};

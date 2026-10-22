@@ -1,6 +1,6 @@
 {
   "name": "vimcode",
-  "version": "0.16.0",
+  "version": "0.20.0",
   "description": "Vim keybindings for the OpenCode prompt",
   "author": "Ori Bar-ilan",
   "license": "MIT",
@@ -23,13 +23,17 @@
   ],
   "scripts": {
     "test": "bun test",
+    "test:int": "bun --env-file=/dev/null test ./test/e2e/prompt.unit.ts ./test/e2e/v1-question.unit.ts ./test/e2e/driver.integration.ts ./test/e2e/launcher.integration.ts",
+    "test:e2e": "bun --env-file=/dev/null scripts/test-e2e.ts",
     "typecheck": "tsc --noEmit",
     "check": "biome check .",
     "fix": "biome check --write ."
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.15",
+    "@kitlangton/terminal-control": "1.2.1",
     "@opencode-ai/plugin": "^1.15.4",
+    "@opentui/keymap": "0.5.10",
     "tsx": "^4.22.1"
   }
 }
