@@ -23,30 +23,30 @@
 
 ## Support policy
 
-This fork builds on upstream **v0.19.2** and preserves `I`, `f`/`F`, and `;`/`,` from the fork's v0.16.0. The development version is **0.19.2-rohit.1**; no new fork tag has been published. The upstream pins below do not include these custom bindings.
+This fork's **v0.20.0** builds on upstream **v0.19.2** and preserves `I`, `f`/`F`, and `;`/`,` from the fork's v0.16.0. Upstream provenance is tracked in the changelog, while this fork uses its own minor releases.
 
 OpenCode v2 support is rolling out gradually, starting with experimental support in vimcode v0.19.0. Future maintenance will move to v2 only. This release still includes v1 support.
 
-| OpenCode version | Upstream reference pin | Status |
+| OpenCode version | Recommended fork pin | Status |
 |------------------|-------------------------|--------|
-| v1 | `v0.18.1` | Previous v1-only release. Opt into `v0.19.2` for the subagent-navigation and question-answer fixes plus shared v1/v2 updates. |
-| v2 | `v0.19.2` | Experimental; validated on OpenCode 2.0.15 on macOS. |
+| v1 | `v0.20.0` | Retained compatibility; E2E tested on OpenCode 1.18.34 on macOS. |
+| v2 | `v0.20.0` | Experimental; installed-package checks on OpenCode 2.1.3 and E2E checks on 2.0.15 on macOS. |
 
 V1 users can stay on an older pinned release instead of following the v2 rollout. We have not set a date for removing v1 support.
 
 ## Install
 
-Use the instructions for your OpenCode major version. Both versions use the same package name, but their config files and recommended pins differ.
+Use the instructions for your OpenCode major version. Both versions use the same package and release tag, but their config files differ.
 
 ### OpenCode v1
 
-We recommend pinning `v0.18.1` for existing v1 users who want the previous v1-only behavior. To get the subagent-navigation and question-answer fixes plus shared updates in `v0.19.2`, change the Git ref to `v0.19.2`; revert to the older pin if you encounter a regression.
+Use `v0.20.0` for the fork's bindings plus upstream's subagent-navigation and question-answer fixes. Existing V1 users can stay pinned to the fork's `v0.16.0` if they prefer their previous behavior. Upstream's V1-only `v0.18.1` is another option, but does not include the fork's custom bindings.
 
 Add to your `tui.json` (or `.opencode/tui.json`):
 
 ```json
 {
-  "plugin": ["vimcode@git+https://github.com/oribarilan/vimcode.git#v0.18.1"]
+  "plugin": ["vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.20.0"]
 }
 ```
 
@@ -56,20 +56,19 @@ By default, you'll see a toast when a newer vimcode version is available. If you
 
 ### OpenCode v2 (experimental)
 
-For this fork, use the local checkout in `~/.config/opencode/cli.json` (replace the path). Remove any previous vimcode entry so only one copy loads. The fork's old `v0.16.0` tag does **not** support v2.
+Pin `v0.20.0` in `~/.config/opencode/cli.json`. Replace any previous vimcode entry so only one copy loads. The fork's old `v0.16.0` tag does **not** support v2.
 
 ```json
 {
   "plugins": [
     {
-      "package": "/absolute/path/to/vimcode",
-      "options": { "updateCheck": false }
+      "package": "vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.20.0"
     }
   ]
 }
 ```
 
-Upstream validation covers OpenCode 2.0.15 on macOS. See [the v2 POC instructions](docs/opencode-v2-poc.md) for isolated development, tarball installation, and compatibility limits. After publishing this fork, use its Git URL pinned to the new commit/tag, not upstream's tags. To roll back v2, remove the plugin entry; a V1-only release cannot be used as a v2 fallback.
+See [the v2 POC instructions](docs/opencode-v2-poc.md) for isolated development, tarball installation, and compatibility limits. You can also replace `package` with `/absolute/path/to/vimcode` to load a local checkout. To roll back v2, remove the plugin entry; a V1-only release cannot be used as a v2 fallback.
 
 This fork passed 86 installed-package checks on OpenCode **2.1.3** on macOS ARM64, with the inherited tab-offset and snapshot-redo known gaps unchanged. Local-directory loading also passed 19 fork-binding checks. To try it without changing your live configuration, run `just dev2 /absolute/path/to/opencode`.
 
@@ -81,7 +80,7 @@ Use the tuple form in `tui.json`:
 
 ```json
 {
-  "plugin": [["vimcode@git+https://github.com/oribarilan/vimcode.git#v0.18.1", { "updateCheck": false }]]
+  "plugin": [["vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.20.0", { "updateCheck": false }]]
 }
 ```
 
@@ -93,7 +92,7 @@ Put `options` alongside `package` in `cli.json`:
 {
   "plugins": [
     {
-      "package": "/absolute/path/to/vimcode",
+      "package": "vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.20.0",
       "options": { "updateCheck": false }
     }
   ]
@@ -162,7 +161,7 @@ On **v2**, set both the host keybind and the plugin option in `cli.json`:
   "keybinds": { "leader": "space" },
   "plugins": [
     {
-      "package": "/absolute/path/to/vimcode",
+      "package": "vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.20.0",
       "options": { "experimentalV2Leader": "space" }
     }
   ]

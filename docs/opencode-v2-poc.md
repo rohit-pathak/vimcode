@@ -2,7 +2,7 @@
 
 ## Fork migration (2026-10-22)
 
-The fork's development version `0.19.2-rohit.1` integrates upstream `b598916` (v0.19.2), then ports `I`, `f`/`F`, and `;`/`,` into the modular engine. Find commands use the pending-state union and reuse upstream's operator-range handling. Each question answer has its own remembered find. The fork repository and update-check URL remain unchanged; no new tag is published.
+The fork's `v0.20.0` release integrates upstream `b598916` (v0.19.2), then ports `I`, `f`/`F`, and `;`/`,` into the modular engine. Find commands use the pending-state union and reuse upstream's operator-range handling. Each question answer has its own remembered find. The fork repository and update-check URL remain unchanged. Validation below was performed on the migration implementation before the release-metadata bump.
 
 The unmodified upstream artifact passed 64 exact-state checks on OpenCode **2.1.3** on macOS ARM64, with two inherited known gaps. A local-directory installation of the port passed 19 additional fork-binding checks, including visual selections in both directions, printable space-leader targets, undo, and one-shot normal mode. V2 cursor movement clears selection, so visual find actions move first and select afterwards. The tmux driver escapes bare semicolons; otherwise tmux treats repeat-find input as a command separator instead of delivering it.
 

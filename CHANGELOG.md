@@ -8,11 +8,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-10-22
+
 ### Changed
 
 - Integrate upstream v0.19.2 (`b598916`) for experimental OpenCode V2 support, modular Vim handlers, text objects, question-answer editing, and compatibility tests, retaining V1 compatibility.
 - Port the fork's `I`, `f`/`F`, and `;`/`,` bindings to the modular engine and editor-local state; preserve the fork's repository and update-check destination.
-- Use development version `0.19.2-rohit.1` to distinguish this fork from upstream; existing tags are unchanged.
+- Release the V2 migration as minor version `0.20.0`; existing tags are unchanged.
 - Validate the fork on OpenCode 2.1.3 on macOS ARM64: 86 installed-package checks and 19 local-source checks pass, with inherited tab-offset and snapshot-redo gaps unchanged.
 
 ### Fixed
@@ -421,7 +423,8 @@ First release. Modal editing for the OpenCode prompt.
 
 > `g` fires immediately as buffer-home instead of waiting for `gg`. The `yy` line tracker drifts on clicks and arrow keys. Visual mode and text objects aren't feasible without cursor position access.
 
-[Unreleased]: https://github.com/rohit-pathak/vimcode/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/rohit-pathak/vimcode/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/rohit-pathak/vimcode/compare/v0.16.0...v0.20.0
 [Fork 0.16.0]: https://github.com/rohit-pathak/vimcode/compare/c1c5c47...v0.16.0
 [0.19.2]: https://github.com/oribarilan/vimcode/compare/v0.19.1...v0.19.2
 [0.19.1]: https://github.com/oribarilan/vimcode/compare/v0.19.0...v0.19.1

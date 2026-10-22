@@ -190,7 +190,7 @@ The experimental v2 adapter uses a raw renderer key listener because v2's public
 
 **Never commit, push, or create PRs unless explicitly asked.** Present the changes and wait for the human to decide when to commit.
 
-Upstream integration baseline: `b598916` (v0.19.2). Fork development version: `0.19.2-rohit.1`. Preserve `origin` and the fork's update-check URL. Fork tag `v0.16.0` is not upstream tag `v0.16.0`; fetch upstream with `--no-tags` and never overwrite either history.
+Upstream integration baseline: `b598916` (v0.19.2). Fork release: `v0.20.0`. Use ordinary minor/patch versions for fork releases and document the upstream baseline separately. Preserve `origin` and the fork's update-check URL. Fork tag `v0.16.0` is not upstream tag `v0.16.0`; fetch upstream with `--no-tags` and never overwrite either history.
 
 All changes go through pull requests. Direct pushes to `main` are blocked. CI (`just check`) must pass before merge. PRs are squash-merged — the PR title becomes the commit on `main`.
 
