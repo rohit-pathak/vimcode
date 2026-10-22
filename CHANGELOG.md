@@ -8,7 +8,111 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
-## [0.16.0] — 2026-08-09
+### Changed
+
+- Integrate upstream v0.19.2 (`b598916`) for experimental OpenCode V2 support, modular Vim handlers, text objects, question-answer editing, and compatibility tests, retaining V1 compatibility.
+- Port the fork's `I`, `f`/`F`, and `;`/`,` bindings to the modular engine and editor-local state; preserve the fork's repository and update-check destination.
+- Use development version `0.19.2-rohit.1` to distinguish this fork from upstream; existing tags are unchanged.
+- Validate the fork on OpenCode 2.1.3 on macOS ARM64: 86 installed-package checks and 19 local-source checks pass, with inherited tab-offset and snapshot-redo gaps unchanged.
+
+### Fixed
+
+- Visual character finds move the cursor before applying selection, since the V2 cursor setter clears selections.
+- Pending `f`/`F` motions can find a printable leader character instead of starting an OpenCode leader sequence.
+- Backward character finds no longer re-match column zero after exhausting earlier occurrences.
+- The compatibility driver escapes literal `;` for tmux, so repeat-find host checks actually deliver the key.
+
+## [0.19.2] — 2026-10-14
+
+### Added
+
+- Added separate PR CI guards via `just test-int` for harness integration and `just test-e2e` for cache-installed OpenCode v1/v2 E2E editing, with exact prompt checks and no-plugin controls; local runs remain on demand and outside the unit suite.
+- Added no-argument `just test-e2e` defaults for both pinned hosts, optional single-host selection, fresh temp receipts, private pinned bootstrap, and ignored path-only `.env` binary overrides; existing explicit CI paths remain supported.
+- Added v1/v2 Terminal Control regressions for answer append followed by native paste in one PTY write, with synthetic question setup fixtures and exact visible-answer checks.
+
+### Fixed
+
+- Custom question answers now support Vim editing on both OpenCode v1 and v2, starting in insert mode with isolated mode/undo state and preserving native answer submission, choice navigation and permissions ([#78](https://github.com/oribarilan/vimcode/issues/78)).
+- Native paste in question answers now waits for queued Vim motions, preventing insertion at the previous cursor position.
+- E2E startup failures retain the native exit status and current-scenario host error log instead of only reporting a closed readiness stream.
+
+## [0.19.1] — 2026-10-04
+
+### Changed
+
+- Added Vim-style subagent-navigation aliases to `just dev` and `just dev2` alongside the arrow bindings for manual checks.
+
+### Fixed
+
+- Remapped navigation keys now reach OpenCode in read-only child-session views without changing the Vim mode ([#79](https://github.com/oribarilan/vimcode/issues/79)).
+- Corrected v2 root-session metadata so root prompts continue receiving Vim commands.
+- Declared the OpenTUI keymap dev dependency so navigation regression tests run from clean installs.
+
+## [0.19.0] — 2026-10-02
+
+### Added
+
+- Experimental OpenCode v2 TUI support using a dual v1/v2 entrypoint and a renderer-key interception adapter, validated on OpenCode 2.0.15 on macOS.
+- Optional installed-package compatibility harness with exact editor-state checks on pinned v1/v2 binaries; lightweight harness regressions run in CI without downloading hosts.
+- `just dev2` launches local source with a pinned OpenCode v2 release and separate `.dev2/` settings/history.
+
+### Changed
+
+- Started a gradual transition toward v2-only maintenance. v1 compatibility remains in v0.19.0; existing v1 users can stay pinned to the recommended v0.18.1 release.
+- Document Git installation, options, and custom leader settings separately for OpenCode v1 and experimental v2.
+- Corrected contributor paths for the split Vim engine and documented CI's compatibility-harness checks.
+
+### Fixed
+
+- Visual `h`/`l` now selects through the cursor in both tested hosts, including backward motions, empty buffers and EOF/EOL boundaries, without resetting the native anchor for subsequent word or line motions. Visual mode re-anchors at the new prompt's cursor when the focused editor changes.
+- The v2 form leader guard and Vim controller now share a per-activation disabled setting; external TUI toggles take effect on reload, local `/vim` toggles take effect immediately.
+- Compatibility checks ignore user tmux configuration, reject JSONC project-config ancestors, and poll boundedly for asynchronous form/permission completion, retaining the last server response in receipts.
+- Selection normalization no longer requires an installed `@opentui/core` type dependency; host-owned selection colors are forwarded unchanged.
+
+## [0.18.1] — 2026-09-11
+
+### Changed
+
+- Updated the documented cache-installed mode indicator limitation with the latest OpenCode and OpenTUI findings ([#3](https://github.com/oribarilan/vimcode/issues/3)).
+
+### Fixed
+
+- Fixed Vim keys remaining unresponsive after dismissing or rejecting a question prompt ([#72](https://github.com/oribarilan/vimcode/issues/72)).
+
+## [0.18.0] — 2026-09-02
+
+### Added
+
+- Word text objects `iw` and `aw`, for use with the `d`, `c`, and `y` operators and in visual mode: `diw`, `ciw`, `daw`, `viw`, and so on ([#57](https://github.com/oribarilan/vimcode/issues/57)).
+- Quote and bracket text objects `i"` `i'` `` i` `` `i(` `i{` `i[` `i<` (with `a` variants) for `d`/`c`/`y` and visual mode: `di"`, `ci(`, `vi[`, and so on. `iq`/`ib` match the nearest quote/bracket of any type; `ib` means any bracket, not vim's parens-only `ib`.
+
+### Fixed
+
+- After an operator, `i`/`a` now start a text object instead of switching to insert mode, so `di` and `ci` wait for the object key ([#57](https://github.com/oribarilan/vimcode/issues/57)).
+
+## [0.17.1] — 2026-09-02
+
+### Fixed
+
+- Arrow keys no longer get swallowed in normal and visual mode. They pass through to OpenCode, so you can exit the subagent view (and use other native navigation) without first switching to insert mode ([#63](https://github.com/oribarilan/vimcode/issues/63)).
+
+## [0.17.0] — 2026-09-02
+
+### Changed
+
+- Redesigned the vim engine into a modular architecture for easier maintenance and future keybindings. No change to existing keybindings or behavior.
+
+### Fixed
+
+- `dgg` and `drx` no longer leave a stray operator that affected the next keypress.
+
+## [0.16.0] — 2026-08-31
+
+### Added
+
+- `:w` and `:write` now send the prompt instead of autocompleting to `:wq` and quitting OpenCode. Sessions auto-persist, so the natural mapping for vim users' reflexive "save" is to submit the current prompt. `:wq` still quits.
+
+## [Fork 0.16.0] — 2026-08-09
 
 ### Added
 
@@ -18,7 +122,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ### Fixed
 
-- Backward `F` motions now exclude the matched character from operator ranges, matching Vim.
+- Backward `F` motions exclude the matched character from operator ranges.
 
 ## [0.15.3] — 2026-07-01
 
@@ -318,7 +422,15 @@ First release. Modal editing for the OpenCode prompt.
 > `g` fires immediately as buffer-home instead of waiting for `gg`. The `yy` line tracker drifts on clicks and arrow keys. Visual mode and text objects aren't feasible without cursor position access.
 
 [Unreleased]: https://github.com/rohit-pathak/vimcode/compare/v0.16.0...HEAD
-[0.16.0]: https://github.com/rohit-pathak/vimcode/compare/c1c5c47...v0.16.0
+[Fork 0.16.0]: https://github.com/rohit-pathak/vimcode/compare/c1c5c47...v0.16.0
+[0.19.2]: https://github.com/oribarilan/vimcode/compare/v0.19.1...v0.19.2
+[0.19.1]: https://github.com/oribarilan/vimcode/compare/v0.19.0...v0.19.1
+[0.19.0]: https://github.com/oribarilan/vimcode/compare/v0.18.1...v0.19.0
+[0.18.1]: https://github.com/oribarilan/vimcode/compare/v0.18.0...v0.18.1
+[0.18.0]: https://github.com/oribarilan/vimcode/compare/v0.17.1...v0.18.0
+[0.17.1]: https://github.com/oribarilan/vimcode/compare/v0.17.0...v0.17.1
+[0.17.0]: https://github.com/oribarilan/vimcode/compare/v0.16.0...v0.17.0
+[0.16.0]: https://github.com/oribarilan/vimcode/compare/v0.15.3...v0.16.0
 [0.15.3]: https://github.com/oribarilan/vimcode/compare/v0.15.2...v0.15.3
 [0.15.2]: https://github.com/oribarilan/vimcode/compare/v0.15.1...v0.15.2
 [0.15.1]: https://github.com/oribarilan/vimcode/compare/v0.15.0...v0.15.1

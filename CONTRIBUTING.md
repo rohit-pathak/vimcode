@@ -4,17 +4,23 @@
 
 ```bash
 just install     # install deps
-just dev         # launch OpenCode with the plugin loaded
-just check       # run lint + tests
+just dev         # launch OpenCode v1 with the plugin loaded
+just dev2        # launch pinned v2 with local source and separate .dev2/ state
+just check       # run lint + existing fast tests
+just test        # existing fast suite
+just test-int    # on-demand harness integration checks (including launcher)
+just test-e2e    # both pinned hosts; inferred private binaries/temp outputs
 ```
 
-Running `opencode` directly in this directory won't load the plugin. You need `just dev`, which sets `OPENCODE_TUI_CONFIG=dev-tui.json`.
+Running `opencode` directly in this directory won't load the plugin. `just dev` sets `OPENCODE_TUI_CONFIG=dev-tui.json`. `just dev2` uses npm's package runner (`npx`) for OpenCode 2.0.15 and keeps its on-disk settings/history separate under `.dev2/`. To use an existing v2 binary, run `just dev2 /absolute/path/to/opencode-v2` or set `OPENCODE_V2_BIN`. See [the v2 POC notes](docs/opencode-v2-poc.md#local-development).
+
+`just test-e2e` runs v1@1.18.34 and v2@2.0.15; add `v1` or `v2` to select one. It prints fresh canonical temp receipt paths and may download/install the pinned hosts privately. Optional ignored `.env` path keys `VIMCODE_E2E_V1_BIN` / `VIMCODE_E2E_V2_BIN` use existing binaries; process settings win, CI ignores the file, and unknown keys are not forwarded. The advanced `HOST BINARY VERSION OUTPUT` form remains available. See [the runner settings and validation limits](docs/test-e2e.md) before using overrides (Linux runtime remains pending).
 
 ## Adding a keybinding
 
-1. Add the key check in the right section of `src/vim.ts` (`handleNormalKey()` for normal mode keys).
+1. Add the key check in the matching mode handler under `src/vim/` (`src/vim/normal.ts` for normal mode keys).
 2. Return appropriate actions: `{ consume: true, actions: [{ type: "cmd", cmd: "input.some.command" }] }`
-3. Add a test in `test/vim.test.ts`.
+3. Add a test in the matching file under `test/vim/` (`test/vim/normal.test.ts` for normal mode keys).
 4. Run `just check`, then `just dev` to verify.
 
 See `AGENTS.md` for operator+motion combos and other patterns.
@@ -38,7 +44,7 @@ Types match commit prefixes: `feat`, `fix`, `refactor`, `chore`, `test`, `docs`.
 1. Create a branch: `git checkout -b feat/your-feature`
 2. Make changes, run `just check` locally. It must pass with zero errors and zero warnings.
 3. Push and open a PR against `main`.
-4. CI runs `just check`. Warnings are treated as errors — the PR will be blocked until the check is fully clean.
+4. CI runs `just check` and `just compat-unit`, plus `just test-int` for harness integration and `just test-e2e` for product E2E on pinned OpenCode v1/v2. Warnings and guard failures fail the build. Locally these guards run only on demand; the existing Python/tmux live-host compatibility harness remains manual. See [the guard commands and limits](docs/test-e2e.md). An owner must configure the new check names as required after their first successful Actions run.
 5. PRs are squash-merged. The PR title becomes the commit message on `main`.
 
 ## Commit messages
@@ -57,6 +63,10 @@ Follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Add your change
 - **MINOR**: New keybindings, new features (backward compatible)
 - **MAJOR**: Breaking changes, removed keybindings
 
+## Host support policy
+
+OpenCode v2 support is rolling out gradually and remains experimental in vimcode v0.19.2. Future maintenance will move to v2 only; v1 compatibility remains in this release. The recommended v1 pin stays at `v0.18.1`. Do not automatically advance that legacy recommendation when preparing a v2-focused release.
+
 ## Release process
 
 Releases are manual.
@@ -67,7 +77,7 @@ Releases are manual.
 4. Update link references at the bottom of CHANGELOG.md.
 5. Bump version in `package.json` (`npm version X.Y.Z --no-git-tag-version`).
 6. Bump `VERSION` in `src/version.ts` to match.
-7. Update **all** version tags in `README.md` — the install snippet and the config example both reference a specific version.
+7. Update the current v2 package refs and release wording in `README.md` and this guide, including options and leader examples. Keep the recommended v1 pin unchanged unless a v1 upgrade is deliberately recommended and verified.
 8. Run `just check`.
 9. Open a PR with the release changes. Title: `Release vX.Y.Z: <one-line summary>`.
 10. After CI passes, squash-merge the PR.
@@ -76,14 +86,30 @@ Releases are manual.
 
 ## Distribution
 
-vimcode is installed via git URL in OpenCode's `tui.json`:
+This fork's development version is `0.19.2-rohit.1`. Until it is published, use the local checkout or a freshly packed tarball as described in README. The upstream release examples below are retained as references and do not include fork-specific bindings. Preserve existing fork tags: fork `v0.16.0` and upstream `v0.16.0` refer to different releases.
+
+Both host versions load the same `./tui` package entry via a Git URL. Pin a tag or commit so upgrades use a new cache entry.
+
+On OpenCode **v1**, use `tui.json`. The recommended legacy pin is `v0.18.1`; `v0.19.2` includes v1 compatibility plus the subagent-navigation and question-answer fixes for users who opt in:
 
 ```json
-{ "plugin": ["vimcode@git+https://github.com/rohit-pathak/vimcode.git"] }
+{ "plugin": ["vimcode@git+https://github.com/oribarilan/vimcode.git#v0.18.1"] }
 ```
 
-Bare names (like `"vimcode"`) trigger npm resolution, which won't work since the package isn't published. The `@git+` prefix tells OpenCode to clone from GitHub.
+On OpenCode **v2**, use `cli.json` and pin `v0.19.2`. v2 support is experimental; the v1-only `v0.18.1` release does not work on v2:
+
+```json
+{
+  "plugins": [
+    {
+      "package": "vimcode@git+https://github.com/oribarilan/vimcode.git#v0.19.2"
+    }
+  ]
+}
+```
+
+Bare names (like `"vimcode"`) trigger npm resolution, which won't work since the package isn't published. The `@git+` prefix tells OpenCode to clone from GitHub. See [the README](README.md#install) for options and v2 compatibility limits; [the POC notes](docs/opencode-v2-poc.md#package-configuration) also cover tarball installs.
 
 ## Architecture
 
-`src/vim.ts` owns all key handling (pure functions). `src/index.tsx` owns all OpenCode API interaction. See `AGENTS.md` for the full architecture guide.
+`src/vim/` owns pure key handling. `src/index.ts` applies actions and registers the shared controller; `src/v2.ts` adapts the v2 host API. See `AGENTS.md` for the full architecture guide.

@@ -1,7 +1,11 @@
 node_modules/
 dist/
+.dev2/
 .opencode/
 .todo/
 .assets/
 package-lock.json
 bun.lock
+.env
+.env.*
+!.env.template
