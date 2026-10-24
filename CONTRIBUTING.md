@@ -86,7 +86,7 @@ Releases are manual.
 
 ## Distribution
 
-This fork's release is `v0.21.0`, based on upstream v0.19.2. Use ordinary minor/patch versions for fork releases and record the upstream baseline in the changelog, not in a personal version suffix. README has the fork's install instructions; the upstream examples below are historical references and do not include fork-specific bindings. Preserve existing fork tags: fork `v0.16.0` and upstream `v0.16.0` refer to different releases.
+This fork's release is `v0.21.1`, based on upstream v0.19.2. Use ordinary minor/patch versions for fork releases and record the upstream baseline in the changelog, not in a personal version suffix. README has the fork's install instructions; the upstream examples below are historical references and do not include fork-specific bindings. Preserve existing fork tags: fork `v0.16.0` and upstream `v0.16.0` refer to different releases.
 
 Both host versions load the same `./tui` package entry via a Git URL. Pin a tag or commit so upgrades use a new cache entry.
 

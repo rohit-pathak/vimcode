@@ -150,7 +150,7 @@ describe("normal till motions", () => {
       cursor = reverse ? 10 : 2;
       press("d");
       const result = press(reverse ? "," : ";");
-      expect(deleteRanges(result.actions)).toEqual([reverse ? { start: 9, end: 10 } : { start: 2, end: 6 }]);
+      expect(deleteRanges(result.actions)).toEqual([reverse ? { start: 8, end: 9 } : { start: 2, end: 6 }]);
     });
   }
   it("clears pending/count on failure without editing or entering insert", () => {

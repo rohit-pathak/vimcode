@@ -393,10 +393,12 @@ function applyNormalFind(
   resetPending(state);
   if (target === null) return { consume: true, actions: [] };
   if (op) {
-    // Backward operator motions exclude the match, as in the original fork.
-    const start = direction === "forward" ? offset : target + 1;
-    const end = direction === "forward" ? target : offset;
-    return applyOperatorRange(state, op, text, start, end);
+    // Backward exclusive motions include the destination, not the original cursor.
+    const start = direction === "forward" ? offset : target;
+    const end = direction === "forward" ? target : offset - 1;
+    const result = applyOperatorRange(state, op, text, start, end);
+    if (op === "y" && direction === "backward") result.actions.push({ type: "cursorTo", offset: start });
+    return result;
   }
   return { consume: true, actions: [{ type: "cursorTo", offset: target }] };
 }

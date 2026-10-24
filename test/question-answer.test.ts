@@ -109,17 +109,30 @@ for (const version of ["v1", "v2"] as const) {
       expect(mock.main.plainText).toBe("abc,def,ghi");
       expect(mock.diagnostics.errors).toEqual([]);
     });
+    it("yanks backward to the match and moves the answer cursor without changing the buffer", async () => {
+      const mock = await setup({ startMode: "normal" });
+      const answer = mock.open(answerEditor("abxcdz"));
+      mock.press("escape");
+      mock.press("y");
+      mock.press("f", { shift: true });
+      mock.press("x");
+      expect(answer.plainText).toBe("abxcdz");
+      expect(answer.cursorOffset).toBe(2);
+      expect(clipboardWrites).toEqual(["xcd"]);
+      expect(mock.main.plainText).toBe("main prompt");
+    });
     it("undoes an answer's character-find deletion without modifying the main prompt", async () => {
       const mock = await setup({ startMode: "normal" });
-      const answer = mock.open(answerEditor("xaxbxcx"));
+      const answer = mock.open(answerEditor("abxcdz"));
       mock.press("escape");
       mock.press("d");
       mock.press("f", { shift: true });
       mock.press("x");
-      expect(answer.plainText).toBe("xaxbx");
+      expect(answer.plainText).toBe("abz");
+      expect(answer.cursorOffset).toBe(2);
       mock.press("u");
-      expect(answer.plainText).toBe("xaxbxcx");
-      expect(answer.cursorOffset).toBe(6);
+      expect(answer.plainText).toBe("abxcdz");
+      expect(answer.cursorOffset).toBe(5);
       expect(mock.main.plainText).toBe("main prompt");
     });
     for (const mainMode of ["insert", "normal", "visual"] as const) {

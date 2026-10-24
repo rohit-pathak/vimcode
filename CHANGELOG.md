@@ -8,6 +8,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+## [0.21.1] — 2026-10-23
+
+### Fixed
+
+- Corrected backward character-find operator endpoints (`dF`/`cF`/`yF` and backward `;`/`,` repeats, including reversed till motions) to include the motion destination and exclude the original cursor character, matching Vim. For example, `dFx` on `abxcdz` with the cursor on `z` now leaves `abz` instead of `abx`.
+- Backward character-find yanks now move the cursor to the range start, matching Vim without changing the buffer.
+
 ## [0.21.0] — 2026-10-23
 
 ### Added
@@ -429,7 +436,8 @@ First release. Modal editing for the OpenCode prompt.
 
 > `g` fires immediately as buffer-home instead of waiting for `gg`. The `yy` line tracker drifts on clicks and arrow keys. Visual mode and text objects aren't feasible without cursor position access.
 
-[Unreleased]: https://github.com/rohit-pathak/vimcode/compare/v0.21.0...HEAD
+[Unreleased]: https://github.com/rohit-pathak/vimcode/compare/v0.21.1...HEAD
+[0.21.1]: https://github.com/rohit-pathak/vimcode/compare/v0.21.0...v0.21.1
 [0.21.0]: https://github.com/rohit-pathak/vimcode/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/rohit-pathak/vimcode/compare/v0.16.0...v0.20.0
 [Fork 0.16.0]: https://github.com/rohit-pathak/vimcode/compare/c1c5c47...v0.16.0
