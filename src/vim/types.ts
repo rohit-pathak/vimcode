@@ -9,7 +9,7 @@ export type Pending =
   | { kind: "operator"; op: Operator }
   | { kind: "goto" }
   | { kind: "replace" }
-  | { kind: "find"; direction: FindDirection; op?: Operator }
+  | { kind: "find"; direction: FindDirection; op?: Operator; till?: boolean }
   | { kind: "textobject"; op?: Operator; around: boolean };
 
 export type Action =
@@ -36,7 +36,7 @@ export type VimState = {
   pending: Pending;
   count: number;
   yankRegister: string;
-  lastFind: { char: string; direction: FindDirection } | null;
+  lastFind: { char: string; direction: FindDirection; till?: boolean } | null;
   oneShotNormal: boolean;
   disabled: boolean;
   visualAnchor?: number;

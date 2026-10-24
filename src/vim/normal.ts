@@ -1,6 +1,6 @@
 import { consumeCount, enterInsert, resetPending } from "./state";
 import { DELETE_MOTION, MOTIONS, SELECT_MOTIONS } from "./tables";
-import { currentLineRange, endOfWord, findChar, firstNonBlank } from "./text";
+import { currentLineRange, endOfWord, findCharMotion, firstNonBlank } from "./text";
 import { resolveTextObject } from "./textobject";
 import type { Action, FindDirection, HandlerResult, KeyEvent, Operator, PromptAccess, VimState } from "./types";
 import { characterArgument, oppositeDirection, PASS, pushN } from "./util";
@@ -34,7 +34,7 @@ export function handleNormalKey(state: VimState, key: string, ev: KeyEvent, prom
   }
 
   if (state.pending.kind === "find") {
-    return applyNormalFind(state, prompt, characterArgument(key), state.pending.direction, true);
+    return applyNormalFind(state, prompt, characterArgument(key), state.pending.direction, true, state.pending.till);
   }
 
   // Pending character argument (r{char})
@@ -191,9 +191,14 @@ export function handleNormalKey(state: VimState, key: string, ev: KeyEvent, prom
     return finishUndoableChange(actions);
   }
 
-  if (key === "f" || key === "F") {
+  if (key === "f" || key === "F" || key === "t") {
     const op = state.pending.kind === "operator" ? state.pending.op : undefined;
-    state.pending = { kind: "find", direction: key === "f" ? "forward" : "backward", op };
+    state.pending = {
+      kind: "find",
+      direction: key === "F" ? "backward" : "forward",
+      op,
+      ...(key === "t" ? { till: true } : {}),
+    };
     return { consume: true, actions };
   }
 
@@ -203,7 +208,7 @@ export function handleNormalKey(state: VimState, key: string, ev: KeyEvent, prom
       return { consume: true, actions };
     }
     const direction = key === ";" ? state.lastFind.direction : oppositeDirection(state.lastFind.direction);
-    return applyNormalFind(state, prompt, state.lastFind.char, direction, false);
+    return applyNormalFind(state, prompt, state.lastFind.char, direction, false, state.lastFind.till);
   }
 
   // Pending operator + e (end-of-word needs special handling)
@@ -378,12 +383,13 @@ function applyNormalFind(
   char: string,
   direction: FindDirection,
   remember: boolean,
+  till = false,
 ): HandlerResult {
-  if (remember) state.lastFind = { char, direction };
+  if (remember) state.lastFind = till ? { char, direction, till: true } : { char, direction };
   const op = state.pending.kind === "find" || state.pending.kind === "operator" ? state.pending.op : undefined;
   const text = prompt.getPlainText();
   const offset = prompt.getCursorOffset();
-  const target = findChar(text, offset, char, direction, consumeCount(state));
+  const target = findCharMotion(text, offset, char, direction, consumeCount(state), { till, repeat: !remember });
   resetPending(state);
   if (target === null) return { consume: true, actions: [] };
   if (op) {

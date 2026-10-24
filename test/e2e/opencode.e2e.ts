@@ -57,6 +57,27 @@ describe("Terminal Control / cache-installed OpenCode", () => {
   );
 
   it.skipIf(negativeControl)(
+    "dt leaves the target intact and one u restores the prompt",
+    async () => {
+      await scenario(run, "till-delete", async () => {
+        await typeText(run, "abc,def,ghi");
+        await checkpoint(run, "till-insert", ["abc,def,ghi"]);
+        await pressKey(run, "Escape");
+        await checkpoint(run, "till-normal", ["abc,def,ghi"]);
+        await typeText(run, "0");
+        await checkpoint(run, "till-home", ["abc,def,ghi"]);
+        await typeText(run, "dt,");
+        await checkpoint(run, "till-delete", [",def,ghi"]);
+        await typeText(run, "u");
+        await checkpoint(run, "till-undo", ["abc,def,ghi"]);
+        await typeText(run, "d2t,");
+        await checkpoint(run, "till-counted-delete", [",ghi"]);
+      });
+    },
+    scenarioTimeoutMs,
+  );
+
+  it.skipIf(negativeControl)(
     "ci quote replaces only the quoted contents",
     async () => {
       await scenario(run, "quote-change", async () => {

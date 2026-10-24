@@ -18,7 +18,7 @@ vimcode is a TUI plugin for [OpenCode](https://opencode.ai). Before working on i
 
 **Gotchas we hit during development:**
 - V2 CLI-only plugins go in global `~/.config/opencode/cli.json` under `"plugins"` with `{ "package": "...", "options": {} }` entries. V1 uses `tui.json` and `"plugin"`.
-- V2 cannot auto-detect custom leaders: `experimentalV2Leader` must match the host. Pending `f`/`F` targets bypass normal-mode leader handling so a printable leader can be found.
+- V2 cannot auto-detect custom leaders: `experimentalV2Leader` must match the host. Pending `f`/`F`/`t` targets bypass normal-mode leader handling so a printable leader can be found.
 - The plugin `package.json` needs `exports: { "./tui": "./src/index.ts" }` — the loader checks `./tui`, not `.`.
 - **`key:before` is NOT a valid intercept type.** The keymap only supports `"key"`, `"key:after"`, and `"raw"`. Passing `"key:before"` silently registers a raw terminal sequence handler that crashes on key events.
 - `dispatchCommand()` from inside a `key` intercept doesn't work for cursor movement. Wrap in `setTimeout(..., 0)` to break out of the intercept stack.
@@ -69,14 +69,14 @@ src/
   vim/                        Pure vim engine (thin barrel re-exports the public surface):
     index.ts     (7 lines)    Barrel — public surface only. No export *, no internals.
     types.ts     (60 lines)   Action union, VimState, Mode, Operator, Pending (including find + operator), FindDirection, Range, KeyEvent, HandlerResult, PromptAccess
-    text.ts      (242 lines)  Pure string algorithms, including findChar and firstNonBlank
+    text.ts      (261 lines)  Pure string algorithms, including findChar, findCharMotion (till/repeat endpoints), and firstNonBlank
     tables.ts    (35 lines)   Keybinding maps: MOTIONS, SELECT_MOTIONS, DELETE_MOTION (engine-internal)
     textobject.ts (36 lines)  resolveTextObject — object char → inclusive Range seam (iw/aw, quote/bracket pairs, iq/ib)
     util.ts      (29 lines)   State-agnostic primitives: translateKey, PASS, pushN, characterArgument, oppositeDirection
     state.ts     (77 lines)   VimState lifecycle + transitions, editor-local lastFind
     insert.ts    (32 lines)   handleInsertKey
-    normal.ts    (426 lines)  handleNormalKey, operator ranges, I and character finds/repeats
-    visual.ts    (142 lines)  handleVisualKey, character finds/repeats; cursor moves precede selection on V2
+    normal.ts    (432 lines)  handleNormalKey, operator ranges, I and character finds/till/repeats
+    visual.ts    (151 lines)  handleVisualKey, character finds/till/repeats; cursor moves precede selection on V2
   leader.ts      (73 lines)   Leader key matching: matchesKeyLike, findMatchingLeader, leaderChar
   clipboard.ts   (19 lines)   writeClipboard() — cross-platform (pbcopy/xclip/xsel/wl-copy/clip.exe)
   version.ts     (46 lines)   Version constant, GitHub update check (cached daily)
@@ -92,11 +92,12 @@ test/
     visual.test.ts   (287)    handleVisualKey branches
     textobject.test.ts (64)   resolveTextObject dispatch seam
     find.test.ts (274)        Fork-specific I, f/F and ;/, including counts, ranges, cancellation and one-shot mode
+    till.test.ts (230)        t and operator/repeat/visual endpoints, counts, cancellation and one-shot mode
   integration.test.ts (662)   Full pipeline: one-shot normal, plugin init, undo snapshots, version sync, prompt overlay tracking
   editor.test.ts     (118)   Host-coordinate boundaries and opaque selection-color forwarding
   v2.test.ts         (428)   Experimental v2 facade contract and lifecycle tests
   child-session-navigation.test.ts (267)  #79: isolated intercept and real OpenTUI keymap navigation regressions
-  question-answer.test.ts (687)  #78: common v1/v2 answer editing, isolated find history and host-key ownership regressions
+  question-answer.test.ts (720)  #78: common v1/v2 answer editing, isolated find/till history and host-key ownership regressions
   question-answer-support.ts (471)  Typed focused editor fixture with real OpenTUI keymap dispatch; optional cursor-clears-selection semantics
   leader.test.ts (125 lines)  Unit tests for leader key matching functions
   compat/                    Optional real-host Python driver and test-only TUI fixture (not packaged)
@@ -190,7 +191,7 @@ The experimental v2 adapter uses a raw renderer key listener because v2's public
 
 **Never commit, push, or create PRs unless explicitly asked.** Present the changes and wait for the human to decide when to commit.
 
-Upstream integration baseline: `b598916` (v0.19.2). Fork release: `v0.20.0`. Use ordinary minor/patch versions for fork releases and document the upstream baseline separately. Preserve `origin` and the fork's update-check URL. Fork tag `v0.16.0` is not upstream tag `v0.16.0`; fetch upstream with `--no-tags` and never overwrite either history.
+Upstream integration baseline: `b598916` (v0.19.2). Fork release: `v0.21.0`. Use ordinary minor/patch versions for fork releases and document the upstream baseline separately. Preserve `origin` and the fork's update-check URL. Fork tag `v0.16.0` is not upstream tag `v0.16.0`; fetch upstream with `--no-tags` and never overwrite either history.
 
 All changes go through pull requests. Direct pushes to `main` are blocked. CI (`just check`) must pass before merge. PRs are squash-merged — the PR title becomes the commit on `main`.
 
