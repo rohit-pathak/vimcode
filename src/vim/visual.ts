@@ -1,6 +1,6 @@
 import { consumeCount, enterInsert, enterNormal, exitVisual, resetPending } from "./state";
 import { SELECT_MOTIONS } from "./tables";
-import { endOfWord, findChar } from "./text";
+import { endOfWord, findCharMotion } from "./text";
 import { resolveTextObject } from "./textobject";
 import type { Action, FindDirection, HandlerResult, KeyEvent, PromptAccess, VimState } from "./types";
 import { characterArgument, oppositeDirection, PASS, pushN } from "./util";
@@ -17,7 +17,8 @@ export function handleVisualKey(state: VimState, key: string, ev: KeyEvent, prom
 
   if (state.pending.kind === "find") {
     if (ev.name === "escape") resetPending(state);
-    else return applyVisualFind(state, prompt, characterArgument(key), state.pending.direction, true);
+    else
+      return applyVisualFind(state, prompt, characterArgument(key), state.pending.direction, true, state.pending.till);
   }
 
   // Pending g prefix in visual mode
@@ -86,8 +87,12 @@ export function handleVisualKey(state: VimState, key: string, ev: KeyEvent, prom
     return { consume: true, actions };
   }
 
-  if (key === "f" || key === "F") {
-    state.pending = { kind: "find", direction: key === "f" ? "forward" : "backward" };
+  if (key === "f" || key === "F" || key === "t") {
+    state.pending = {
+      kind: "find",
+      direction: key === "F" ? "backward" : "forward",
+      ...(key === "t" ? { till: true } : {}),
+    };
     return { consume: true, actions };
   }
 
@@ -97,7 +102,7 @@ export function handleVisualKey(state: VimState, key: string, ev: KeyEvent, prom
       return { consume: true, actions };
     }
     const direction = key === ";" ? state.lastFind.direction : oppositeDirection(state.lastFind.direction);
-    return applyVisualFind(state, prompt, state.lastFind.char, direction, false);
+    return applyVisualFind(state, prompt, state.lastFind.char, direction, false, state.lastFind.till);
   }
 
   // Motions extend selection
@@ -128,9 +133,13 @@ function applyVisualFind(
   char: string,
   direction: FindDirection,
   remember: boolean,
+  till = false,
 ): HandlerResult {
-  if (remember) state.lastFind = { char, direction };
-  const target = findChar(prompt.getPlainText(), prompt.getCursorOffset(), char, direction, consumeCount(state));
+  if (remember) state.lastFind = till ? { char, direction, till: true } : { char, direction };
+  const target = findCharMotion(prompt.getPlainText(), prompt.getCursorOffset(), char, direction, consumeCount(state), {
+    till,
+    repeat: !remember,
+  });
   resetPending(state);
   const actions: Action[] = [];
   if (target !== null) {

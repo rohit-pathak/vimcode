@@ -21,6 +21,25 @@ export function findChar(
   return target;
 }
 
+export function findCharMotion(
+  text: string,
+  offset: number,
+  char: string,
+  direction: FindDirection,
+  count: number,
+  options: { till?: boolean; repeat?: boolean } = {},
+): number | null {
+  let match = findChar(text, offset, char, direction, count);
+  if (match === null || !options.till) return match;
+  const adjustment = direction === "forward" ? -1 : 1;
+  // Vim skips a stationary till repeat only for a single-count repeat.
+  if (options.repeat && count === 1 && match + adjustment === offset) {
+    match = findChar(text, match, char, direction);
+    if (match === null) return null;
+  }
+  return match + adjustment;
+}
+
 export function firstNonBlank(text: string, offset: number): number {
   const safeOffset = Math.min(Math.max(offset, 0), text.length);
   const lineStart = text.slice(0, safeOffset).lastIndexOf("\n") + 1;

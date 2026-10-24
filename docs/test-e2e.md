@@ -53,10 +53,11 @@ The suites test different boundaries:
 
 `just test-int` groups the SDK/process integration checks and supporting parser units under the **Harness integration tests** CI job. The parser units stay outside ordinary product-test discovery as part of the on-demand harness suite. Lifecycle checks cover stalled readiness, launch/shutdown responses, SDK abort, keyboard type/press requests through the real failure/finally path, unresolved cleanup retries, and driver-override rejection. They do not exercise vimcode or OpenCode. Keyboard raw-write timeouts use the same failure/finally cleanup checks as type/press. A synthetic native-startup-exit case verifies that the body is never entered, the scenario stays failed, no retry occurs, and native exit status plus only the current scenario's error log are retained.
 
-Five product E2E scenarios run against both host generations:
+Six product E2E scenarios run against both host generations:
 
 - Cold package-cache installation and exact insertion of `cold package loaded`.
 - `Escape`, `0`, `w`, `i`, `X` produces exactly `one Xtwo three`.
+- `dt,` on `abc,def,ghi` leaves `,def,ghi`; one `u` restores the original prompt, and `d2t,` leaves `,ghi`.
 - `Escape`, `0`, `w`, `ci"`, `new` produces exactly `say "new" now`, including an intermediate empty-quote check.
 - Multiline `dG` leaves exactly `alpha` plus an empty line; one `u` restores exactly `alpha`, `bravo`, `charlie`.
 

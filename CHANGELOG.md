@@ -8,6 +8,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+## [0.21.0] — 2026-10-23
+
+### Added
+
+- Forward till motion `t{char}` in normal and visual modes, including `dt`/`ct`/`yt`, counts, and editor-local `;`/`,` repeats. For example, `dt,` deletes up to (but not including) the next comma; `d2t,` targets the second comma. Backward `T` is not yet implemented.
+
 ## [0.20.0] — 2026-10-22
 
 ### Changed
@@ -423,7 +429,8 @@ First release. Modal editing for the OpenCode prompt.
 
 > `g` fires immediately as buffer-home instead of waiting for `gg`. The `yy` line tracker drifts on clicks and arrow keys. Visual mode and text objects aren't feasible without cursor position access.
 
-[Unreleased]: https://github.com/rohit-pathak/vimcode/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/rohit-pathak/vimcode/compare/v0.21.0...HEAD
+[0.21.0]: https://github.com/rohit-pathak/vimcode/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/rohit-pathak/vimcode/compare/v0.16.0...v0.20.0
 [Fork 0.16.0]: https://github.com/rohit-pathak/vimcode/compare/c1c5c47...v0.16.0
 [0.19.2]: https://github.com/oribarilan/vimcode/compare/v0.19.1...v0.19.2

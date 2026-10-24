@@ -65,16 +65,49 @@ for (const version of ["v1", "v2"] as const) {
       expect(other.cursorOffset).toBe(6);
       expect(mock.diagnostics.errors).toEqual([]);
     });
-    it("finds a printable leader as the target instead of starting a leader sequence", async () => {
+    for (const motion of ["f", "t"]) {
+      it(`${motion} accepts a printable leader as the target instead of starting a leader sequence`, async () => {
+        const mock = await setup({ startMode: "normal" });
+        mock.main.editBuffer.setText("a b c");
+        mock.main.cursorOffset = 0;
+        mock.press(motion);
+        expect(mock.press("space").propagationStopped).toBe(true);
+        expect(mock.main.cursorOffset).toBe(motion === "t" ? 0 : 1);
+        mock.press(";");
+        expect(mock.main.cursorOffset).toBe(motion === "t" ? 2 : 3);
+        expect(mock.main.plainText).toBe("a b c");
+      });
+    }
+    it("isolates till history, retains visual selection, and undoes an answer's till deletion", async () => {
       const mock = await setup({ startMode: "normal" });
-      mock.main.editBuffer.setText("a b c");
+      mock.main.editBuffer.setText("abc,def,ghi");
       mock.main.cursorOffset = 0;
-      mock.press("f");
-      expect(mock.press("space").propagationStopped).toBe(true);
-      expect(mock.main.cursorOffset).toBe(1);
+      mock.press("t");
+      mock.press(",");
+      expect(mock.main.cursorOffset).toBe(2);
+      const answer = mock.open(answerEditor("abc,def,ghi", "ANSWER", true));
+      mock.press("escape");
+      answer.cursorOffset = 0;
       mock.press(";");
-      expect(mock.main.cursorOffset).toBe(3);
-      expect(mock.main.plainText).toBe("a b c");
+      expect(answer.cursorOffset).toBe(0);
+      mock.press("v");
+      mock.press("t");
+      mock.press(",");
+      expect(answer.selection).toEqual({ start: 0, end: 3 });
+      mock.press("escape");
+      answer.cursorOffset = 0;
+      mock.press("d");
+      mock.press("t");
+      mock.press(",");
+      expect(answer.plainText).toBe(",def,ghi");
+      mock.press("u");
+      expect(answer.plainText).toBe("abc,def,ghi");
+      expect(answer.cursorOffset).toBe(0);
+      mock.close();
+      mock.press(";");
+      expect(mock.main.cursorOffset).toBe(6);
+      expect(mock.main.plainText).toBe("abc,def,ghi");
+      expect(mock.diagnostics.errors).toEqual([]);
     });
     it("undoes an answer's character-find deletion without modifying the main prompt", async () => {
       const mock = await setup({ startMode: "normal" });

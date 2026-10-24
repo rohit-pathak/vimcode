@@ -123,6 +123,23 @@ def run_core(ctx):
 
 
 def run_fork_bindings(ctx):
+    seed(ctx, "abc,def,ghi")
+    keys(ctx, "dt,")
+    record(ctx, "fork-till-delete", {"text": ",def,ghi", "offset": 0})
+    send(ctx, "u")
+    record(ctx, "fork-till-undo", {"text": "abc,def,ghi", "offset": 0})
+    keys(ctx, "t,;")
+    record(ctx, "fork-till-repeat", {"text": "abc,def,ghi", "offset": 6})
+    send(ctx, ",")
+    record(ctx, "fork-till-reverse", {"offset": 4})
+    seed(ctx, "abc,def,ghi")
+    keys(ctx, "d2t,")
+    record(ctx, "fork-till-counted-delete", {"text": ",ghi", "offset": 0})
+    seed(ctx, "abc,def,ghi")
+    keys(ctx, "vt,")
+    record(ctx, "fork-till-visual", {"offset": 2, "selected": "abc", "selection": {"start": 0, "end": 3}})
+    send(ctx, "x")
+    record(ctx, "fork-till-visual-delete", {"text": ",def,ghi", "offset": 0})
     seed(ctx, "  alpha beta", 10)
     keys(ctx, "I!")
     record(ctx, "fork-I-first-nonblank", {"text": "  !alpha beta", "offset": 3})
