@@ -23,14 +23,14 @@
 
 ## Support policy
 
-This fork's **v0.21.0** builds on upstream **v0.19.2**, preserves `I`, `f`/`F`, and `;`/`,` from the fork's v0.16.0, and adds `t{char}` till motions. Upstream provenance is tracked in the changelog, while this fork uses its own minor releases.
+This fork's **v0.21.1** builds on upstream **v0.19.2**, preserves `I`, `f`/`F`, and `;`/`,` from the fork's v0.16.0, and adds `t{char}` till motions. Upstream provenance is tracked in the changelog, while this fork uses its own minor releases.
 
 OpenCode v2 support is rolling out gradually, starting with experimental support in vimcode v0.19.0. Future maintenance will move to v2 only. This release still includes v1 support.
 
 | OpenCode version | Recommended fork pin | Status |
 |------------------|-------------------------|--------|
-| v1 | `v0.21.0` | Retained compatibility; E2E tested on OpenCode 1.18.34 on macOS. |
-| v2 | `v0.21.0` | Experimental; installed-package checks on OpenCode 2.1.4 and E2E checks on 2.0.15 on macOS. |
+| v1 | `v0.21.1` | Retained compatibility; E2E tested on OpenCode 1.18.34 on macOS. |
+| v2 | `v0.21.1` | Experimental; installed-package checks on OpenCode 2.1.4 and E2E checks on 2.0.15 on macOS. |
 
 V1 users can stay on an older pinned release instead of following the v2 rollout. We have not set a date for removing v1 support.
 
@@ -40,13 +40,13 @@ Use the instructions for your OpenCode major version. Both versions use the same
 
 ### OpenCode v1
 
-Use `v0.21.0` for the fork's bindings, including till motions, plus upstream's subagent-navigation and question-answer fixes. Existing V1 users can stay pinned to the fork's `v0.16.0` if they prefer their previous behavior. Upstream's V1-only `v0.18.1` is another option, but does not include the fork's custom bindings.
+Use `v0.21.1` for the fork's bindings, including till motions and corrected backward-find operators, plus upstream's subagent-navigation and question-answer fixes. Existing V1 users can stay pinned to the fork's `v0.16.0` if they prefer their previous behavior. Upstream's V1-only `v0.18.1` is another option, but does not include the fork's custom bindings.
 
 Add to your `tui.json` (or `.opencode/tui.json`):
 
 ```json
 {
-  "plugin": ["vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.21.0"]
+  "plugin": ["vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.21.1"]
 }
 ```
 
@@ -56,13 +56,13 @@ By default, you'll see a toast when a newer vimcode version is available. If you
 
 ### OpenCode v2 (experimental)
 
-Pin `v0.21.0` in `~/.config/opencode/cli.json`. Replace any previous vimcode entry so only one copy loads. The fork's old `v0.16.0` tag does **not** support v2.
+Pin `v0.21.1` in `~/.config/opencode/cli.json`. Replace any previous vimcode entry so only one copy loads. The fork's old `v0.16.0` tag does **not** support v2.
 
 ```json
 {
   "plugins": [
     {
-      "package": "vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.21.0"
+      "package": "vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.21.1"
     }
   ]
 }
@@ -80,7 +80,7 @@ Use the tuple form in `tui.json`:
 
 ```json
 {
-  "plugin": [["vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.21.0", { "updateCheck": false }]]
+  "plugin": [["vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.21.1", { "updateCheck": false }]]
 }
 ```
 
@@ -92,7 +92,7 @@ Put `options` alongside `package` in `cli.json`:
 {
   "plugins": [
     {
-      "package": "vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.21.0",
+      "package": "vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.21.1",
       "options": { "updateCheck": false }
     }
   ]
@@ -161,7 +161,7 @@ On **v2**, set both the host keybind and the plugin option in `cli.json`:
   "keybinds": { "leader": "space" },
   "plugins": [
     {
-      "package": "vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.21.0",
+      "package": "vimcode@git+https://github.com/rohit-pathak/vimcode.git#v0.21.1",
       "options": { "experimentalV2Leader": "space" }
     }
   ]
@@ -213,7 +213,7 @@ When the input is empty, `j`/`k` scroll through prompt history instead of moving
 | `de` `ce` `ye` | To end of word |
 | `df{char}` `cf{char}` `yf{char}` | Through next `{char}` on the current line |
 | `dt{char}` `ct{char}` `yt{char}` | Up to, but not including, next `{char}` on the current line |
-| `dF{char}` `cF{char}` `yF{char}` | Back to previous `{char}`, excluding the match |
+| `dF{char}` `cF{char}` `yF{char}` | Back to previous `{char}`, including the match and excluding the original cursor character |
 | `d;` `c;` `y;` | Repeat the latest character find |
 | `d,` `c,` `y,` | Repeat the latest character find in the opposite direction |
 | `d$` `c$` `y$` | To end of line |

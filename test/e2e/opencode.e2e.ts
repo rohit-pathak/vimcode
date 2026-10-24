@@ -57,6 +57,27 @@ describe("Terminal Control / cache-installed OpenCode", () => {
   );
 
   it.skipIf(negativeControl)(
+    "backward find operators retain the original cursor character",
+    async () => {
+      await scenario(run, "backward-find", async () => {
+        await typeText(run, "abxcdz");
+        await checkpoint(run, "backward-insert", ["abxcdz"]);
+        await pressKey(run, "Escape");
+        await checkpoint(run, "backward-normal", ["abxcdz"]);
+        await typeText(run, "dFx");
+        await checkpoint(run, "backward-delete", ["abz"]);
+        await typeText(run, "u");
+        await checkpoint(run, "backward-undo", ["abxcdz"]);
+        await typeText(run, "cFx");
+        await checkpoint(run, "backward-change", ["abz"]);
+        await typeText(run, "Q");
+        await checkpoint(run, "backward-replacement", ["abQz"]);
+      });
+    },
+    scenarioTimeoutMs,
+  );
+
+  it.skipIf(negativeControl)(
     "dt leaves the target intact and one u restores the prompt",
     async () => {
       await scenario(run, "till-delete", async () => {

@@ -155,16 +155,20 @@ describe("normal character finds", () => {
   });
   for (const op of ["d", "c", "y"] as const) {
     for (const motion of ["f", "F", ";", ","] as const) {
-      it(`${op}${motion} preserves the fork's inclusive-forward/exclusive-backward ranges`, () => {
-        cursor = 4;
+      it(`${op}${motion} uses Vim's inclusive-forward/exclusive-backward ranges`, () => {
+        text = "abxcdzexh";
+        cursor = 5;
         state.lastFind = { char: "x", direction: "forward" };
         press(op);
         let result = press(motion);
         if (motion === "f" || motion === "F") result = press("x");
-        const range = motion === "F" || motion === "," ? { start: 3, end: 4 } : { start: 4, end: 6 };
+        const range = motion === "F" || motion === "," ? { start: 2, end: 4 } : { start: 5, end: 7 };
         if (op === "y") {
           expect(state.yankRegister).toBe(text.slice(range.start, range.end + 1));
-          expect(result.actions).toEqual([{ type: "yank", text: state.yankRegister }]);
+          expect(result.actions).toEqual([
+            { type: "yank", text: state.yankRegister },
+            ...(motion === "F" || motion === "," ? [{ type: "cursorTo", offset: range.start }] : []),
+          ]);
         } else {
           expect(deleteRanges(result.actions)).toEqual([range]);
           expect(saveUndoSnapshots(result.actions)).toHaveLength(1);
