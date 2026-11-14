@@ -8,6 +8,10 @@ install:
 test:
     bun test
 
+# Type-check src with tsc
+typecheck:
+    bun run typecheck
+
 # Check formatting and lint (warnings are errors)
 lint:
     bunx biome ci --error-on-warnings .
@@ -16,9 +20,10 @@ lint:
 lint-fix:
     bunx biome check --write .
 
-# Run lint + tests
+# Run lint + typecheck + tests
 check:
     just lint
+    just typecheck
     just test
 
 # Optional real-host check: use an empty output dir outside any checkout.

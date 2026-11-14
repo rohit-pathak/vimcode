@@ -34,6 +34,8 @@
     "@kitlangton/terminal-control": "1.2.1",
     "@opencode-ai/plugin": "^1.15.4",
     "@opentui/keymap": "0.5.10",
-    "tsx": "^4.22.1"
+    "@types/node": "24.19.2",
+    "tsx": "^4.22.1",
+    "typescript": "5.9.3"
   }
 }
