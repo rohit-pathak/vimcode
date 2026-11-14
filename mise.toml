@@ -1,0 +1,3 @@
+# Pins bun for this project (mise). Node comes from the global default.
+[tools]
+bun = "1.3"

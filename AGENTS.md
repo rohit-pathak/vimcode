@@ -175,7 +175,7 @@ Text objects (`iw`/`aw`, the quote/bracket pairs, and the `iq`/`ib` aliases) rou
 just dev       # Launch v1 with the plugin (uses OPENCODE_TUI_CONFIG=dev-tui.json)
 just dev2      # Launch pinned v2/local source with isolated .dev2/ state
 bun test       # Run characterization tests
-just check     # Lint + existing fast tests (used in GitHub Actions)
+just check     # Lint + typecheck + existing fast tests (used in GitHub Actions)
 just test-int  # On-demand SDK/process integration and parser helpers
 just test-e2e  # Both pinned PTY hosts (v1 1.18.34, v2 2.0.15); optional v1/v2 selector
 just compat-unit  # Pure checks for the optional host harness
@@ -220,7 +220,7 @@ Branch naming: `type/description` — e.g. `feat/replace-char`, `fix/escape-hand
 
 **Shifted key translation** happens in `translateKey()` before the handler sees the key. Handlers work with normalized keys (`$` not `shift+4`, `G` not `shift+g`). Add new shift mappings in `translateKey`, not in handlers.
 
-**TypeScript strictness.** `strict: true` in tsconfig. No `any` in `src/vim/` or `test/`. The `api` parameter in `index.ts` is typed as `any` because the plugin types come from peer deps that may not be installed locally — that's the one acceptable use.
+**TypeScript strictness.** `strict: true` in tsconfig. No `any` in `src/vim/` or `test/`. `api` in `index.ts` is typed as `TuiPluginApi` from `@opencode-ai/plugin`; `just check` runs `tsc --noEmit`, so type errors fail CI.
 
 **Cross-platform.** All code must work on macOS, Linux, and Windows. No platform-specific assumptions without a runtime `process.platform` check and fallbacks for other platforms.
 

@@ -6,7 +6,7 @@
 just install     # install deps
 just dev         # launch OpenCode v1 with the plugin loaded
 just dev2        # launch pinned v2 with local source and separate .dev2/ state
-just check       # run lint + existing fast tests
+just check       # run lint + typecheck + existing fast tests
 just test        # existing fast suite
 just test-int    # on-demand harness integration checks (including launcher)
 just test-e2e    # both pinned hosts; inferred private binaries/temp outputs
